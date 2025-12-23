@@ -1,10 +1,10 @@
 # Git Commit Message and Semantic Release Conventions
 
-**When to use this file:** Reference this for conventional commit format, semantic versioning rules, branch naming conventions, PR templates, and semantic-release workflow.
+**When to use this file:** Reference this for conventional commit format, semantic versioning rules, branch naming conventions, PR templates, pre-commit hooks configuration, and semantic-release workflow.
 
 **Related documentation:**
 - For GitHub Actions workflows that enforce these conventions, see [05-github-actions.md](05-github-actions.md)
-- For pre-commit hook configuration, see workspace root `pyproject.toml`
+- For pre-commit hook dependency versions, see workspace root `pyproject.toml` [dependency-groups]
 
 These guidelines establish the standards for git commit messages, branch naming, and pull request workflows across all projects in our organization. We use [Conventional Commits](https://www.conventionalcommits.org/) to enable automated semantic versioning and changelog generation through `python-semantic-release`.
 
@@ -429,16 +429,145 @@ fix(logging): correct sentry DSN configuration for production
 
 ## 9. Git Workflow Integration
 
-### Pre-commit Hooks
-Pre-commit hooks automatically run before each commit:
+### Pre-commit Hooks Configuration
 
-1. **ruff-format:** Formats Python code
-2. **ruff-linter:** Lints Python code
-3. **pytest:** Runs test suite
+All projects MUST use pre-commit hooks to ensure code quality before commits. These hooks run locally and are not part of CI/CD.
 
-If hooks modify files (e.g., formatting), the commit will fail. Stage the changes and retry.
+#### Standard Configuration
 
-### Commit Message Validation
+All projects MUST use this exact `.pre-commit-config.yaml` configuration:
+
+```yaml
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: ruff-format
+        entry: "uv run ruff format bases components projects"
+        language: system
+        always_run: true
+        types: [python]
+
+  - repo: local
+    hooks:
+      - id: ruff-linter
+        name: ruff-linter
+        entry: "uv run ruff check --fix bases components projects"
+        language: system
+        always_run: true
+        types: [python]
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: "uv run pytest"
+        pass_filenames: false
+        language: system
+        always_run: true
+        types: [python]
+```
+
+#### Hook Details
+
+**ruff-format:**
+- Automatically formats Python code to project standards (88 char lines, PEP 8)
+- Runs on every commit
+- Uses `uv run` to ensure consistency with project dependencies
+
+**ruff-linter:**
+- Checks and auto-fixes code quality issues
+- Runs on every commit
+- Applies fixes automatically when possible
+
+**pytest:**
+- Runs full test suite
+- Runs on every commit
+- Must pass before commit is allowed
+- Uses `pass_filenames: false` to run full suite, not just changed files
+
+#### Installation (Required for All Team Members)
+
+After cloning the repository, install pre-commit hooks:
+
+```bash
+uv run pre-commit install
+```
+
+**Important:** This is a **one-time setup** per repository clone. Once installed, hooks will automatically run on every `git commit`.
+
+#### Commit Workflow with Pre-commit Hooks
+
+1. Make code changes
+2. Stage changes: `git add .`
+3. Run commit: `git commit -m "feat(scope): message"`
+4. Hooks run automatically in order:
+   - **ruff-format** formats your code
+   - **ruff-linter** checks and fixes issues
+   - **pytest** runs all tests
+5. If hooks modify files (formatting/linting), the commit will fail:
+   ```
+   ruff-format.............................Failed
+   - hook id: ruff-format
+   - files were modified by this hook
+   ```
+6. Re-stage modified files and commit again:
+   ```bash
+   git add .
+   git commit -m "feat(scope): message"
+   ```
+
+#### Path Customization
+
+If your project has additional Python files or directories, update the paths in the configuration:
+
+```yaml
+# For projects with additional root-level Python files (e.g., update_version.py)
+entry: "uv run ruff format bases components projects update_version.py"
+entry: "uv run ruff check --fix bases components projects update_version.py"
+
+# For projects without bases directory (components-only)
+entry: "uv run ruff format components projects"
+entry: "uv run ruff check --fix components projects"
+
+# For projects with scripts directory
+entry: "uv run ruff format bases components projects scripts"
+entry: "uv run ruff check --fix bases components projects scripts"
+```
+
+#### Skipping Hooks (Use Sparingly)
+
+In rare cases, you may need to skip hooks:
+
+```bash
+# Skip all hooks (not recommended)
+git commit --no-verify -m "message"
+
+# Skip specific hook
+SKIP=pytest git commit -m "message"
+```
+
+**Warning:** Only skip hooks when absolutely necessary (e.g., emergency hotfix). Never skip hooks to bypass failing tests.
+
+#### Version Control
+
+Hook versions are controlled by dependencies in `pyproject.toml`:
+
+```toml
+[dependency-groups]
+dev = [
+    "pre-commit>=4.5.0",
+    "ruff>=0.14.8",
+]
+test = [
+    "pytest>=9.0.2",
+]
+```
+
+**Rationale:** Using `uv run` ensures all team members use the same tool versions from `uv.lock`.
+
+### Commit Message Validation (Optional)
+
 Consider adding `commitlint` to validate commit messages:
 
 ```yaml
@@ -449,6 +578,8 @@ Consider adding `commitlint` to validate commit messages:
     - id: conventional-pre-commit
       stages: [commit-msg]
 ```
+
+This validates that commit messages follow the conventional commits format before allowing the commit.
 
 ## 10. Tools and Resources
 

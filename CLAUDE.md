@@ -13,7 +13,7 @@ See the detailed rules in `.claude/rules/` for comprehensive guidelines. Below i
 | [04-python-logging.md](.claude/rules/04-python-logging.md) | Logging patterns | Structured logging format, event/payload structure, past-tense verbs |
 | [05-github-actions.md](.claude/rules/05-github-actions.md) | CI/CD workflows | Python setup, uv installation (0.7.8), `uv sync --frozen`, no caching policy |
 | [06-uv-and-pyproject.md](.claude/rules/06-uv-and-pyproject.md) | Dependency & deployment configuration | Workspace vs project config, subset rule (CRITICAL), Cloud Functions copy.sh, Docker COPY patterns, dependency groups |
-| [07-git-commit-conventions.md](.claude/rules/07-git-commit-conventions.md) | Version control & releases | Conventional commits, semantic versioning, branch naming, PR conventions |
+| [07-git-commit-conventions.md](.claude/rules/07-git-commit-conventions.md) | Version control & releases | Conventional commits, semantic versioning, branch naming, PR conventions, pre-commit hooks |
 
 ### Quick Navigation
 
