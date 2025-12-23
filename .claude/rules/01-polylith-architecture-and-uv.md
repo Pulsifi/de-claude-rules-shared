@@ -17,6 +17,44 @@ Polylith provides a structured approach to building software by organizing code 
 Maintaining a strict and consistent monorepo structure, [as demonstrated in the `python-polylith-example-uv`](https://github.com/DavidVujic/python-polylith-example-uv/tree/main), is paramount. All Python code, including components, bases, and projects, **must** adhere to this predefined structure. **This consistency is not merely for readability; it is a fundamental enabler for automated code generation, linting, testing, and deployment scripts.** Code generation tools and scripts will rely on these predictable paths.
 
 *   **Top-level `pyproject.toml`:** This file at the workspace root will define global development dependencies (e.g., linters, formatters, test runners) and `uv` specific configurations for the entire monorepo.
+*   **`workspace.toml`:** This file at the workspace root defines Polylith-specific configuration including namespace, structure theme, and test settings.
+
+### Polylith Workspace Configuration
+
+The workspace root MUST include a `workspace.toml` file with Polylith configuration:
+
+```toml
+[tool.polylith]
+namespace = "my_workspace"
+
+[tool.polylith.structure]
+theme = "loose"
+
+[tool.polylith.tag.patterns]
+release = "v[0-9]*"
+
+[tool.polylith.test]
+enabled = true
+```
+
+**Configuration fields:**
+
+- **namespace:** The workspace namespace used in import paths (e.g., `from my_workspace.component import func`)
+  - Must match the subdirectory names in `bases/` and `components/` directories
+  - Use snake_case naming convention
+  - Examples: `de_agent`, `data_pipeline`, `asset`
+
+- **structure.theme:** Controls Polylith structure validation
+  - Use `"loose"` for flexible structure (recommended)
+  - Alternative: `"strict"` for enforced Polylith conventions
+
+- **tag.patterns.release:** Git tag pattern for releases
+  - Standard pattern: `"v[0-9]*"` matches tags like `v1.0.0`, `v2.1.3`
+  - Used by Polylith CLI to identify release versions
+
+- **test.enabled:** Enable Polylith test detection
+  - Set to `true` to allow `poly test` commands
+  - Integrates with workspace testing strategy
 *   **`bases/{workspace_name}/` directory:** Contains all base bricks. Each base resides in a distinct directory within a subdirectory named after your workspace.
     *   *Example based on `python-polylith-example-uv`*: If your workspace is named `example`, then bases would be located at `bases/example/my_api_base`, `bases/example/my_cli_base`.
 *   **`components/{workspace_name}/` directory:** Contains all component bricks. Each component resides in a distinct directory within a subdirectory named after your workspace. An *optional* additional layer of directories is permitted for logical grouping (e.g., by cloud provider, domain area, or service type).
