@@ -34,7 +34,6 @@ All `pyproject.toml` files MUST follow PEP 621 standards for project metadata.
 name = "app-data-pipeline"
 version = "2.5.0"
 description = "Data pipeline for CDC replication"
-readme = "README.md"
 requires-python = "~=3.13.0"
 authors = [
     { name = "Data Engineering Team", email = "data_eng@pulsifi.me" }
@@ -44,9 +43,11 @@ authors = [
 ### Field Requirements
 - **name:** Use lowercase with hyphens (kebab-case) for project names.
 - **version:** Follow semantic versioning (MAJOR.MINOR.PATCH).
+- **description:** Brief description of the project's purpose.
 - **requires-python:** Always use tilde operator `~=` for minor version pinning (e.g., `~=3.13.0` allows `>=3.13.0, <3.14.0`).
 - **authors:** Use consistent team attribution across all repositories:
   - `{ name = "Data Engineering Team", email = "data_eng@pulsifi.me" }`
+- **readme:** Optional. Only include for packages intended for distribution (PyPI, etc.). Omit for internal deployment projects like Cloud Functions.
 
 ## 2. Workspace vs Project Configuration
 
@@ -648,7 +649,6 @@ build-backend = "hatchling.build"
 name = "bigquery-asset-mgmt"
 version = "3.151.0"
 description = "BigQuery asset management workspace"
-readme = "README.md"
 requires-python = "~=3.13.0"
 authors = [
     { name = "Data Engineering Team", email = "data_eng@pulsifi.me" }
@@ -728,7 +728,6 @@ build-backend = "hatchling.build"
 name = "data-transformation"
 version = "3.151.0"
 description = "Retrieves geographical information for a list of IP addresses."
-readme = "README.md"
 requires-python = "~=3.13.0"
 authors = [
     { name = "Data Engineering Team", email = "data_eng@pulsifi.me" }
