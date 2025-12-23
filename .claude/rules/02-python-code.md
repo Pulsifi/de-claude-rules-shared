@@ -1,12 +1,5 @@
 # Python Code Style and Formatting Rules
 
-**When to use this file:** Reference this for Python code style standards including PEP 8 compliance, ruff formatting rules, naming conventions, type hints requirements, and import ordering.
-
-**Related documentation:**
-- For ruff and pyright tool configuration, see workspace root `pyproject.toml` ([tool.ruff] and [tool.pyright] sections)
-- For docstring standards, see [03-python-docstring.md](03-python-docstring.md)
-- For logging standards, see [04-python-logging.md](04-python-logging.md)
-
 ## 1. General Principles
 - **Style Guide:** All Python code MUST adhere to the [PEP 8](https://peps.python.org/pep-0008/) style guide.
 - **Automation:** We use the `ruff` formatter for consistent styling. All generated code should be compliant with `ruff`'s default settings.
@@ -37,9 +30,122 @@
     1.  Standard library imports (e.g., `os`, `sys`, `math`, `datetime`).
     2.  Third-party library imports (e.g., `requests`, `pandas`, `numpy`).
     3.  Local application/library specific imports (e.g., `from my_project import utils`).
-- **Style:** Use absolute imports (`from my_project.utils import helper`) instead of relative imports where possible for better clarity and refactoring safety.
+<!-- - **Style:** Use absolute imports (`from my_project.utils import helper`) instead of relative imports where possible. -->
 
-## 5. Example of Well-Formatted Code
+## 5. Settings Management with Pydantic
+
+All settings/configuration classes MUST use `pydantic_settings.BaseSettings` for type-safe environment variable management.
+
+### Required Pattern
+
+Settings classes MUST be placed in `components/{namespace}/settings/core.py` and follow this structure:
+
+```python
+from pydantic import ConfigDict
+from pydantic_settings import BaseSettings
+
+
+class Settings(BaseSettings):
+    """Base settings class with common configuration.
+
+    All settings are loaded from environment variables.
+    """
+    model_config = ConfigDict(
+        case_sensitive=True,
+        env_file=".env",
+        extra="ignore"
+    )  # pyright: ignore
+
+    # Project metadata
+    ENVIRONMENT: str
+    VERSION: str
+
+    # GCP configuration
+    GCP_PROJECT_ID: str
+    GCP_REGION: str
+    GCP_REGION_ABBREV: str
+    GCP_REGION_SUFFIX: str
+
+    # JIRA metadata
+    EPIC: str
+    COMPONENT: str
+```
+
+### Inheritance Pattern
+
+For project-specific settings, inherit from the base `Settings` class:
+
+```python
+class MyServiceSettings(Settings):
+    """Settings specific to MyService.
+
+    Inherits common settings and adds service-specific configuration.
+    """
+    SLACK_BOT_TOKEN: str
+    DATABASE_URL: str
+    API_KEY: str
+```
+
+### Multiple Settings Classes
+
+Projects with different components can have multiple settings classes:
+
+```python
+class LangfuseSettings(Settings):
+    """Settings for Langfuse integration."""
+    LANGFUSE_PUBLIC_KEY: str
+    LANGFUSE_SECRET_KEY: str
+    LANGFUSE_HOST: str
+
+
+class Slack2AgentSettings(LangfuseSettings):
+    """Settings for Slack to Agent integration.
+
+    Inherits Langfuse settings and adds Slack-specific configuration.
+    """
+    SLACK_SIGNING_SECRET: str
+    SLACK_BOT_TOKEN: str
+    AGENT_ENGINE_BUCKET: str
+    FIRESTORE_DATABASE: str
+    FIRESTORE_COLLECTION: str
+    AGENT_ENGINE_REGION: str
+```
+
+### Default Values
+
+Use Python's default value syntax for optional settings:
+
+```python
+class SessionManagementSettings(Settings):
+    """Settings for session management."""
+    AGENT_ENGINES: set[str] = {
+        "product_knowledge_agent_gpt_5_mini",
+    }
+    AGENT_ENGINE_REGION: str
+    SESSION_INACTIVE_DAYS: int = 7
+    SLACK_URL: str = "https://hooks.slack.com/services/..."
+```
+
+### Usage Pattern
+
+```python
+from components.my_namespace.settings import MyServiceSettings
+
+settings = MyServiceSettings()
+print(settings.GCP_PROJECT_ID)
+print(settings.API_KEY)
+```
+
+### Key Requirements
+
+1. **Always use `BaseSettings`:** Never use plain dataclasses or dictionaries for settings
+2. **Type annotations:** All fields MUST have type annotations
+3. **model_config:** Always include `ConfigDict` with `case_sensitive=True`, `env_file=".env"`, `extra="ignore"`
+4. **Inheritance:** Use inheritance to avoid repeating common settings
+5. **Docstrings:** Include class docstrings explaining the purpose
+6. **Upper case:** Environment variable names MUST be UPPER_CASE
+
+## 6. Example of Well-Formatted Code
 Here is an example of a Python module that follows all the style guidelines:
 ```python
 import os
