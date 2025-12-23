@@ -19,8 +19,15 @@ This repository contains shared Claude Code rules and configuration for all Pyth
 ### Initial Setup
 
 1. **Add as submodule** (from your repository root):
+
+   **Using HTTPS:**
    ```bash
-   git submodule add https://github.com/pulsifi/claude-rules-shared.git .claude-shared
+   git submodule add https://github.com/Pulsifi/de-claude-rule-shared.git .claude-shared
+   ```
+
+   **Using SSH (if your local Git is configured with SSH):**
+   ```bash
+   git submodule add git@github.com:Pulsifi/de-claude-rule-shared.git .claude-shared
    ```
 
 2. **Create symlinks** to make Claude Code find the rules:
@@ -69,7 +76,7 @@ git submodule update --init --recursive
 
 ## Versioning
 
-This repository uses semantic versioning. Check the [releases page](https://github.com/pulsifi/claude-rules-shared/releases) for version history.
+This repository uses semantic versioning. Check the [releases page](https://github.com/Pulsifi/de-claude-rule-shared/releases) for version history.
 
 ### Pinning to Specific Version (Optional)
 
