@@ -19,8 +19,15 @@ This repository contains shared Claude Code rules and configuration for all Pyth
 ### Initial Setup
 
 1. **Add as submodule** (from your repository root):
+
+   **Using HTTPS:**
    ```bash
-   git submodule add https://github.com/pulsifi/claude-rules-shared.git .claude-shared
+   git submodule add https://github.com/Pulsifi/de-claude-rules-shared.git .claude-shared
+   ```
+
+   **Using SSH (if your local Git is configured with SSH):**
+   ```bash
+   git submodule add git@github.com:Pulsifi/de-claude-rules-shared.git .claude-shared
    ```
 
 2. **Create symlinks** to make Claude Code find the rules:
@@ -86,27 +93,36 @@ git commit -m "chore: pin Claude rules to v1.0.0"
 
 ## Making Changes
 
-### Proposing Updates
-
+### Proposing Updates to Shared Rules
+All shared rule updates must be made and proposed from this repository.
 1. Fork this repository
-2. Create a feature branch: `git checkout -b feat/add-new-rule`
-3. Make your changes
-4. Submit a pull request with clear description
-5. Once merged, all consuming repositories can update
-
-### Testing Changes Locally
-
-Before proposing changes, test in one repository:
-
+2. Create a feature branch:
 ```bash
-# In consuming repository
-cd .claude-shared
-git checkout -b test-new-rule
-# Make changes
-cd ..
+git checkout -b feat/add-new-rule-A
+```
+3. Make your changes and commit them
+4. Push the branch to the remote repository:
+```bash
+git push -u origin feat/add-new-rule-A
+```
+5. Validate the changes using at least one consuming repository (see below)
+5. Submit a pull request with clear description
+6. Once merged, all consuming repositories can update
 
-# Test with Claude Code
-# If successful, push branch and create PR in claude-rules-shared
+
+### Local Testing with a Consuming Repository (Required)
+After pushing your feature branch, validate it in a consuming repository.
+```bash
+cd .claude-shared
+git fetch
+git checkout feat/add-new-rule-A
+cd ..
+```
+Run Claude Code and confirm the rules behave as expected submitting the PR for review.
+
+```
+Note: Consuming repositories are used only for validation.
+Pull requests must be opened from this repository `de-claude-rules-shared`.
 ```
 
 ## Repository Structure
