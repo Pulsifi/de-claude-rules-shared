@@ -1,18 +1,23 @@
 # de-claude-rule-shared
 
-This repository contains shared Claude Code rules and configuration for all Python/Polylith projects across the organization.
+This repository contains shared Claude Code rules and configuration for data engineering projects built with:
+
+- **🐍 Python 3.13** - Modern Python with type hints and best practices
+- **📦 uv** - Fast, reliable Python package management
+- **🧱 Polylith** - Modular architecture for scalable monorepos
+
+Perfect for data engineers building pipelines, managing data assets, and deploying cloud-native applications.
 
 ## What's Included
 
-- `.claude/rules/` - Comprehensive rule files covering:
-  - Polylith architecture & uv dependency management
-  - Python code style (PEP 8, ruff, type hints)
-  - Docstring standards (Google style)
-  - Logging patterns (structured logging)
-  - GitHub Actions CI/CD workflows
-  - pyproject.toml configuration & deployment
-  - Git commit conventions (Conventional Commits)
-- `CLAUDE.md` - Project context file with rule index
+- `.claude/rules/` - Lifecycle-organized rule files:
+  - **01-setup.md** - Polylith architecture concepts, monorepo structure, tool versions
+  - **02-development.md** - Python code style, docstrings, type hints, logging patterns
+  - **03-dependencies.md** - uv package management, pyproject.toml configuration, subset rule
+  - **04-testing.md** - Testing standards (🚧 placeholder for future expansion)
+  - **05-deployment.md** - Cloud Functions & Docker deployment patterns
+  - **06-automation.md** - GitHub Actions CI/CD workflows, git conventions, semantic versioning
+- `CLAUDE.md` - Project context file with comprehensive rule index
 
 ## Using in Your Repository
 
@@ -20,7 +25,7 @@ This repository contains shared Claude Code rules and configuration for all Pyth
 
 1. **Add as submodule** (from your repository root):
    ```bash
-   git submodule add https://github.com/pulsifi/claude-rules-shared.git .claude-shared
+   git submodule add https://github.com/pulsifi/de-claude-rules-shared.git .claude-shared
    ```
 
 2. **Create symlinks** to make Claude Code find the rules:
@@ -69,7 +74,7 @@ git submodule update --init --recursive
 
 ## Versioning
 
-This repository uses semantic versioning. Check the [releases page](https://github.com/pulsifi/claude-rules-shared/releases) for version history.
+This repository uses semantic versioning. Check the [releases page](https://github.com/pulsifi/de-claude-rules-shared/releases) for version history.
 
 ### Pinning to Specific Version (Optional)
 
@@ -112,23 +117,22 @@ cd ..
 ## Repository Structure
 
 ```
-claude-rules-shared/
+de-claude-rules-shared/
 ├── .claude/
 │   └── rules/
-│       ├── 01-polylith-architecture-and-uv.md
-│       ├── 02-python-code.md
-│       ├── 03-python-docstring.md
-│       ├── 04-python-logging.md
-│       ├── 05-github-actions.md
-│       ├── 06-uv-and-pyproject.md
-│       └── 07-git-commit-conventions.md
+│       ├── 01-setup.md                    # Polylith architecture & setup
+│       ├── 02-development.md              # Python coding standards
+│       ├── 03-dependencies.md             # uv & pyproject.toml
+│       ├── 04-testing.md                  # Testing standards (placeholder)
+│       ├── 05-deployment.md               # Cloud Functions & Docker
+│       └── 06-automation.md               # CI/CD & git workflows
 ├── CLAUDE.md
 └── README.md (this file)
 ```
 
 ## Current Tool Versions
 
-See [01-polylith-architecture-and-uv.md](.claude/rules/01-polylith-architecture-and-uv.md#7-tool-versions) for current versions:
+See [01-setup.md](.claude/rules/01-setup.md#5-tool-versions) for current versions:
 - Python: 3.13
 - uv: 0.7.8
 - hatchling: Latest compatible
@@ -163,9 +167,9 @@ ls -la | grep claude
 
 For questions or issues:
 - Create an issue in this repository
-- Contact the Data Engineering team
+- Start a discussion for questions and ideas
 
 ## License
 
-Internal use only - Pulsifi
+MIT License - Feel free to use and adapt for your data engineering projects
 
