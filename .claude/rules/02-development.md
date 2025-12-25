@@ -230,13 +230,13 @@ from typing import Any
 import requests
 from google.cloud import pubsub_v1
 
-from my_project.components.logging import log_event
-from my_project.components.settings import Settings
+from my_workspace.components.logging.core import log_event
+from my_workspace.components.settings.core import Settings
 
 # ❌ Wrong - mixed groups, no separation
 import requests
 import os
-from my_project.components.logging import log_event
+from my_workspace.components.logging.core import log_event
 import sys
 ```
 
@@ -255,8 +255,8 @@ from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 
 # Local
-from pipeline.components.gcp.pubsub import publish_message
-from pipeline.components.logging import log_event
+from pipeline.components.gcp.pubsub.core import publish_message
+from pipeline.components.logging.core import log_event
 ```
 
 ---
@@ -530,7 +530,7 @@ from typing import Any
 
 import requests
 
-from my_project.components.settings import Settings
+from my_workspace.components.settings.core import Settings
 
 # Constants
 MAX_RETRIES = 3
