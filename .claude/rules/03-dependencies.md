@@ -38,6 +38,7 @@ All `pyproject.toml` files MUST follow PEP 621 standards for project metadata.
 name = "app-data-pipeline"
 version = "2.5.0"
 description = "Data pipeline for CDC replication"
+readme = "README.md"
 requires-python = "~=3.13.0"
 authors = [
     { name = "Data Engineering Team", email = "data_eng@pulsifi.me" }
@@ -48,10 +49,10 @@ authors = [
 - **name:** Use lowercase with hyphens (kebab-case) for project names.
 - **version:** Follow semantic versioning (MAJOR.MINOR.PATCH).
 - **description:** Brief description of the project's purpose.
+- **readme:** Path to README file (typically `"README.md"`). Include in all projects for documentation.
 - **requires-python:** Always use tilde operator `~=` for minor version pinning (e.g., `~=3.13.0` allows `>=3.13.0, <3.14.0`).
 - **authors:** Use consistent team attribution across all repositories:
   - `{ name = "Data Engineering Team", email = "data_eng@pulsifi.me" }`
-- **readme:** Optional. Only include for packages intended for distribution (PyPI, etc.). Omit for internal deployment projects like Cloud Functions.
 
 ## 2. Workspace vs Project Configuration
 
@@ -101,12 +102,25 @@ release = [
 line-length = 88
 target-version = "py313"
 
+[tool.ruff.format]
+quote-style = "double"
+
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 [tool.pyright]
 pythonVersion = "3.13"
 typeCheckingMode = "standard"
+include = [
+    "bases",
+    "components",
+    "development",
+    "projects",
+    "update_version.py",
+]
 ```
 - Code quality tool configurations are workspace-wide
 - **Never** add these to project files
@@ -135,6 +149,7 @@ These sections appear in **both** workspace and project `pyproject.toml` files:
 name = "bigquery-asset-mgmt"
 version = "3.151.0"
 description = "BigQuery asset management workspace"
+readme = "README.md"
 dependencies = [
     "Flask>=3.1.2",
     "functions-framework>=3.10.0",
@@ -150,6 +165,7 @@ dependencies = [
 name = "data-transformation"
 version = "3.151.0"
 description = "IP geolocation transformation function"
+readme = "README.md"
 dependencies = [
     "Flask>=3.1.2",
     "functions-framework>=3.10.0",
@@ -230,17 +246,17 @@ default-groups = "all"
 
 ### Quick Reference: Workspace vs Project Sections
 
-| Section | Workspace Root | Project Files | Notes |
-|---------|---------------|---------------|-------|
-| `[project]` | ✅ Required | ✅ Required | Different content in each |
-| `[build-system]` | ✅ Required | ✅ Required | Identical in both |
-| `[dependency-groups]` | ✅ Required | ❌ Omit | Inherited by projects |
-| `[tool.uv.workspace]` | ✅ Required | ❌ Never | Defines workspace |
-| `[tool.uv]` default-groups | ✅ Required | ❌ Omit | Inherited by projects |
-| `[tool.ruff]` | ✅ Required | ❌ Never | Workspace-wide config |
-| `[tool.pyright]` | ✅ Required | ❌ Never | Workspace-wide config |
-| `[tool.polylith.bricks]` | ✅ Required | ✅ Required | Different paths in each |
-| `[tool.hatch.build]` | ✅ Required | ⚠️ Optional | Omit if using copy.sh |
+| Section                    | Workspace Root | Project Files | Notes                     |
+| -------------------------- | -------------- | ------------- | ------------------------- |
+| `[project]`                | ✅ Required     | ✅ Required    | Different content in each |
+| `[build-system]`           | ✅ Required     | ✅ Required    | Identical in both         |
+| `[dependency-groups]`      | ✅ Required     | ❌ Omit        | Inherited by projects     |
+| `[tool.uv.workspace]`      | ✅ Required     | ❌ Never       | Defines workspace         |
+| `[tool.uv]` default-groups | ✅ Required     | ❌ Omit        | Inherited by projects     |
+| `[tool.ruff]`              | ✅ Required     | ❌ Never       | Workspace-wide config     |
+| `[tool.pyright]`           | ✅ Required     | ❌ Never       | Workspace-wide config     |
+| `[tool.polylith.bricks]`   | ✅ Required     | ✅ Required    | Different paths in each   |
+| `[tool.hatch.build]`       | ✅ Required     | ⚠️ Optional    | Omit if using copy.sh     |
 
 ## 3. Dependency Management with uv
 
@@ -411,6 +427,7 @@ build-backend = "hatchling.build"
 name = "bigquery-asset-mgmt"
 version = "3.151.0"
 description = "BigQuery asset management workspace"
+readme = "README.md"
 requires-python = "~=3.13.0"
 authors = [
     { name = "Data Engineering Team", email = "data_eng@pulsifi.me" }
@@ -472,12 +489,25 @@ members = ["projects/*"]
 line-length = 88
 target-version = "py313"
 
+[tool.ruff.format]
+quote-style = "double"
+
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 [tool.pyright]
 pythonVersion = "3.13"
 typeCheckingMode = "standard"
+include = [
+    "bases",
+    "components",
+    "development",
+    "projects",
+    "update_version.py",
+]
 ```
 
 ### Example 2: Cloud Function Project pyproject.toml
@@ -490,6 +520,7 @@ build-backend = "hatchling.build"
 name = "data-transformation"
 version = "3.151.0"
 description = "Retrieves geographical information for a list of IP addresses."
+readme = "README.md"
 requires-python = "~=3.13.0"
 authors = [
     { name = "Data Engineering Team", email = "data_eng@pulsifi.me" }
@@ -788,12 +819,21 @@ uv sync --frozen
 
 ### Issue: "Requires python ~=3.13.0 but..." error
 **Cause:** System Python version doesn't match project requirements.
-**Solution:** Install correct Python version using pyenv or conda; verify with `python --version`.
+**Solution:** Install correct Python version using uv; verify with `python --version`.
 
-**Fix with pyenv:**
+**Fix with uv:**
 ```bash
-pyenv install 3.13
-pyenv local 3.13
+# Install Python 3.13
+uv python install 3.13
+
+# Pin Python version for the project (creates .python-version file)
+uv python pin 3.13
+
+# Create virtual environment and sync dependencies
+uv venv
+uv sync --frozen
+
+# Verify
 python --version  # Should show Python 3.13.x
 ```
 
