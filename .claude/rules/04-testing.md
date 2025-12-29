@@ -68,6 +68,44 @@ projects/cdc_pipeline/
     └── test_integration.py
 ```
 
+### pytest Configuration
+
+All pytest configuration MUST be defined in the workspace root `pyproject.toml` file under `[tool.pytest.ini_options]`.
+
+**Standard configuration:**
+```toml
+[tool.pytest.ini_options]
+addopts = "--tb=short -v"
+testpaths = ["test"]
+required_plugins = ["pytest-cov", "pytest-env"]
+```
+
+**Configuration options:**
+- **addopts:** Default command-line arguments
+  - `--tb=short` - Short traceback format for cleaner output
+  - `-v` - Verbose mode showing individual test names
+- **testpaths:** Directories to search for tests (workspace root `test/` directory)
+- **required_plugins:** Ensure critical pytest plugins are installed
+
+**Additional common options:**
+```toml
+[tool.pytest.ini_options]
+addopts = "--tb=short -v"
+testpaths = ["test"]
+required_plugins = ["pytest-cov", "pytest-env"]
+env = [
+    "ENVIRONMENT=test",
+    "GCP_PROJECT_ID=test-project",
+    # Additional test environment variables
+]
+```
+
+**Key points:**
+- Configuration lives in workspace root, not project files
+- All projects inherit the same pytest configuration
+- Use `pytest-env` plugin for test-specific environment variables
+- Keep test paths relative to workspace root
+
 ---
 
 ## 3. Unit Testing

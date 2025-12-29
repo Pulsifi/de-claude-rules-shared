@@ -251,6 +251,8 @@ Polylith's modularity naturally supports robust testing.
 - **Component-specific fixtures:** `test/components/{namespace}/conftest.py`
 - **Base-specific fixtures:** `test/bases/{namespace}/conftest.py`
 - **pytest configuration:** Defined in workspace root `pyproject.toml` under `[tool.pytest.ini_options]`
+  - Standard options: `addopts = "--tb=short -v"`, `testpaths = ["test"]`, `required_plugins = ["pytest-cov", "pytest-env"]`
+  - See [04-testing.md](04-testing.md#pytest-configuration) for complete configuration details
 
 ---
 
