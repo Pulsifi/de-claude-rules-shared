@@ -295,7 +295,7 @@ jobs:
         run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
       - name: "Authenticate to Google Cloud"
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@v3
         with:
           token_format: "access_token"
           workload_identity_provider: "projects/${{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/gha-${{ vars.ENVIRONMENT }}/providers/pulsifi-github-${{ vars.ENVIRONMENT }}"
