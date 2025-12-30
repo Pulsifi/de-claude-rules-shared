@@ -374,6 +374,191 @@ jobs:
 - **Use `act`:** Install and use [act](https://github.com/nektos/act) to test workflows locally before pushing.
 - **Command:** `act -j <job-name>`
 
+### Docker Build Best Practices
+
+**Docker Buildx Setup:**
+- Always use `docker/setup-buildx-action@v3` before building Docker images
+- Buildx enables advanced features like multi-platform builds and improved caching
+
+```yaml
+- name: "Set up Docker Buildx"
+  uses: docker/setup-buildx-action@v3
+```
+
+**GitHub Actions Layer Caching:**
+- Use `cache-from: type=gha` and `cache-to: type=gha,mode=max` for faster builds in development/sandbox environments
+- **Do NOT use caching in production** to ensure fresh, reproducible builds
+
+```yaml
+# Sandbox deployment - WITH caching for faster iteration
+- name: "Build and push Docker image"
+  uses: docker/build-push-action@v5
+  with:
+    context: .
+    file: ./projects/console/Dockerfile
+    push: true
+    tags: |
+      asia-southeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/de-backoffice/console-cr:${{ steps.configure_version_tag.outputs.VERSION }}
+      asia-southeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/de-backoffice/console-cr:latest
+    cache-from: type=gha
+    cache-to: type=gha,mode=max
+
+# Production deployment - WITHOUT caching for reproducibility
+- name: "Build and push Docker image"
+  uses: docker/build-push-action@v5
+  with:
+    context: .
+    file: ./projects/console/Dockerfile
+    push: true
+    tags: |
+      asia-southeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/de-backoffice/console-cr:${{ steps.set_version.outputs.VERSION }}
+      asia-southeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/de-backoffice/console-cr:latest
+    # No cache-from or cache-to for production
+```
+
+**Why different caching strategies:**
+- **Sandbox:** Fast iteration is valuable; caching speeds up development feedback loops
+- **Production:** Reproducibility and security are paramount; build from scratch every time
+
+### Step Naming and ID Conventions
+
+**Step ID naming convention:**
+- Use `id:` field when the step sets output variables that other steps will reference
+- Format: `verb-subject` in kebab-case (lowercase with hyphens)
+- Examples: `determine-stack-version`, `extract-pulumi-version`, `configure-version-tag`, `get-secrets`
+
+```yaml
+# Good - descriptive verb-subject format
+- name: "Determine stack and version"
+  id: determine-stack-version
+  run: |
+    echo "STACK=${STACK}" >> $GITHUB_OUTPUT
+    echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+
+- name: "Extract Pulumi version from lock file"
+  id: extract-pulumi-version
+  run: |
+    PULUMI_VERSION=$(grep -A 1 '^name = "pulumi"$' uv.lock | grep '^version = ' | head -1 | sed 's/version = "\(.*\)"/\1/')
+    echo "PULUMI_VERSION=${PULUMI_VERSION}" >> $GITHUB_OUTPUT
+
+# Bad - not verb-subject format
+- name: "Stack and version"
+  id: stack_version  # Wrong: uses underscores, not descriptive
+
+- name: "Get Pulumi version"
+  id: pulumi  # Wrong: missing verb, too terse
+```
+
+**When to add `id` to steps:**
+- Step sets `GITHUB_OUTPUT` variables
+- Step outputs need to be referenced by later steps (e.g., `${{ steps.configure-version-tag.outputs.VERSION }}`)
+- Step results are used in conditionals or other workflow logic
+
+**When NOT to add `id`:**
+- Step has no outputs
+- Step is self-contained and doesn't share data with other steps
+
+### Descriptive Logging in Workflows
+
+**Echo statement best practices:**
+- Use descriptive echo statements to make workflow logs readable and debuggable
+- Include context about what's happening and the values being used
+- Echo before setting output variables to document the values
+
+```yaml
+# Good - descriptive logging
+- name: "Configure version tag"
+  id: configure_version_tag
+  run: |
+    TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+    BRANCH=${GITHUB_REF_NAME//[\/-]/_}
+    VERSION=${BRANCH}-${TIMESTAMP}
+
+    echo "Generated sandbox version: ${VERSION}"
+    echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+
+- name: "Determine stack and version"
+  id: determine-stack-version
+  run: |
+    if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+      STACK="production"
+      VERSION=$(echo "${{ github.ref }}" | sed 's|refs/tags/v||')
+      echo "Using version from selected tag: ${VERSION}"
+    else
+      STACK="sandbox"
+      TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+      BRANCH=${GITHUB_REF_NAME//[\/-]/_}
+      VERSION=${BRANCH}-${TIMESTAMP}
+      echo "Generated sandbox version: ${VERSION}"
+    fi
+
+    echo "Deploying to stack: ${STACK} with version: ${VERSION}"
+    echo "STACK=${STACK}" >> $GITHUB_OUTPUT
+    echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+
+# Bad - no logging, hard to debug
+- name: "Configure version tag"
+  id: configure_version_tag
+  run: |
+    VERSION=${GITHUB_REF_NAME//[\/-]/_}-$(date -u +%Y%m%d-%H%M%S)
+    echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+```
+
+**Benefits of descriptive logging:**
+- Easier debugging when workflows fail
+- Better visibility into what's happening during execution
+- Helps reviewers understand workflow behavior
+- Documents expected values and transformations
+
+### Workflow Naming Conventions
+
+**All workflows MUST have both `name` and `run-name` fields:**
+
+```yaml
+name: Infrastructure Provision
+run-name: Provision ${{ github.event_name == 'workflow_dispatch' && 'production' || 'sandbox' }} infrastructure
+```
+
+**`name` field:**
+- Static, descriptive name of the workflow
+- Shows in GitHub Actions tab and workflow file list
+- Use title case (e.g., "Infrastructure Provision", "Sandbox Deploy")
+
+**`run-name` field:**
+- Dynamic, context-specific description shown in GitHub Actions run list
+- Use expressions to include environment, version, or other runtime context
+- Makes it easy to identify specific runs in the UI
+
+**Examples:**
+
+```yaml
+# Infrastructure provision - shows environment
+name: Infrastructure Provision
+run-name: Provision ${{ github.event_name == 'workflow_dispatch' && 'production' || 'sandbox' }} infrastructure
+
+# Application deployment - shows target environment
+name: Deploy
+run-name: Deploy to ${{ github.event.inputs.environment }}
+
+# Sandbox deployment - static since always sandbox
+name: Sandbox Deploy
+run-name: Deploy to sandbox
+
+# Test workflow - shows PR number
+name: Test
+run-name: Test PR #${{ github.event.pull_request.number }}
+```
+
+**When to use dynamic `run-name`:**
+- Workflow can run in multiple environments (use variable to show which)
+- Workflow has user inputs that affect behavior (show the inputs)
+- Workflow behavior changes based on trigger (show what triggered it)
+
+**When NOT to use dynamic `run-name`:**
+- Workflow only runs in one context (static description is sufficient)
+- For simple workflows like linting or type checking (static name is clear enough)
+- When hardcoded values are acceptable (e.g., test, semantic release, code quality checks)
+
 ## 7. Version Upgrade Checklist
 
 When upgrading uv or Python versions:
