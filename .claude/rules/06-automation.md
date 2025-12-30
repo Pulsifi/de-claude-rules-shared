@@ -238,6 +238,120 @@ jobs:
         run: semantic-release publish
 ```
 
+### Example 4: Infrastructure Provision Workflow
+```yaml
+name: Infrastructure Provision
+
+on:
+  pull_request:
+    types: [labeled]      # Sandbox: add "provision infrastructure" label
+  workflow_dispatch:      # Production: manual trigger from GitHub UI
+
+jobs:
+  provision-infrastructure:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.event.label.name == 'provision infrastructure')
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'workflow_dispatch' && 'production' || 'sandbox' }}
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+    steps:
+      - name: "Check out GitHub repository"
+        uses: actions/checkout@v4
+
+      - name: "Determine stack and version"
+        id: determine-stack-version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            STACK="production"
+            VERSION=$(echo "${{ github.ref }}" | sed 's|refs/tags/v||')
+          else
+            STACK="sandbox"
+            TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+            BRANCH=${GITHUB_REF_NAME//[\/\-]/_}
+            VERSION=${BRANCH}-${TIMESTAMP}
+          fi
+          echo "STACK=${STACK}" >> $GITHUB_OUTPUT
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: "pyproject.toml"
+
+      - name: "Set up uv"
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.7.8"
+
+      - name: "Install dependencies"
+        run: |
+          uv sync --frozen --group release
+
+      - name: "Activate virtualenv"
+        run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
+
+      - name: "Authenticate to Google Cloud"
+        uses: google-github-actions/auth@v2
+        with:
+          token_format: "access_token"
+          workload_identity_provider: "projects/${{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/gha-${{ vars.ENVIRONMENT }}/providers/pulsifi-github-${{ vars.ENVIRONMENT }}"
+          service_account: "github-actions@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
+
+      - name: "Extract Pulumi version from lock file"
+        id: extract-pulumi-version
+        run: |
+          PULUMI_VERSION=$(grep -A 1 '^name = "pulumi"$' uv.lock | grep '^version = ' | head -1 | sed 's/version = "\(.*\)"/\1/')
+          echo "PULUMI_VERSION=${PULUMI_VERSION}" >> $GITHUB_OUTPUT
+
+      - name: "Update Pulumi"
+        uses: pulumi/actions@v6
+        with:
+          pulumi-version: ${{ steps.extract-pulumi-version.outputs.PULUMI_VERSION }}
+
+      - name: "Initialize Pulumi dependencies"
+        working-directory: infrastructure/pulumi
+        run: |
+          pulumi install
+
+      - name: "Provision infrastructure with Pulumi"
+        uses: pulumi/actions@v6
+        env:
+          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+          VERSION: ${{ steps.determine-stack-version.outputs.VERSION }}
+        with:
+          command: up
+          cloud-url: gs://${{ vars.PULUMI_BUCKET }}
+          work-dir: infrastructure/pulumi
+          stack-name: ${{ steps.determine-stack-version.outputs.STACK }}
+          upsert: true
+          comment-on-pr: true
+          edit-pr-comment: false
+          refresh: true
+          config-map: |
+            {
+              input:version: { value: ${{ env.VERSION }}, secret: false },
+            }
+```
+
+**Key differences from application deployment workflows:**
+- **Trigger mechanisms:** Uses `workflow_dispatch` for production and PR labels for sandbox
+- **Environment selection:** Dynamically determines environment based on trigger type
+- **Dependency group:** Uses `--group release` for Pulumi and IaC tools
+- **Working directory:** Operates in `infrastructure/pulumi/` directory
+- **Pulumi-specific steps:** Extracts Pulumi version from lock file, initializes dependencies, runs `pulumi up`
+- **Stack management:** Automatically selects correct Pulumi stack (production or sandbox)
+- **Version handling:** Generates version from git tag (production) or branch+timestamp (sandbox)
+
+**When to use this workflow:**
+- Provisioning foundational GCP resources (service accounts, buckets, IAM, Artifact Registry)
+- Rare infrastructure changes (weeks to months)
+- Changes that affect multiple applications or services
+- Infrastructure updates that don't require application redeployment
+
 ## 6. Common Patterns and Best Practices
 
 ### Multi-Job Workflows
