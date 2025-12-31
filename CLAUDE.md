@@ -1,33 +1,84 @@
 # Project Context
 This is a Python project using Polylith architecture.
 
-## Rules
+## Documentation Structure
 
-See the detailed rules in `.claude/rules/` for comprehensive guidelines. Below is a quick reference:
+This project uses a **hybrid approach** with condensed rules (always-loaded guidelines) and skills (on-demand templates and workflows):
 
-| File | Purpose | Key Topics |
-|------|---------|-----------|
-| [01-setup.md](.claude/rules/01-setup.md) | Monorepo architecture & tool configuration | Polylith concepts (workspace, bricks, components, bases), infrastructure/application separation (2-stack pattern), tool versions (Python 3.13, uv 0.7.8), developer workflow |
-| [02-development.md](.claude/rules/02-development.md) | Python coding standards | PEP 8 compliance, ruff formatting, naming conventions, type hints, import ordering, docstrings, logging |
-| [03-dependencies.md](.claude/rules/03-dependencies.md) | Dependency & deployment configuration | Workspace vs project config, subset rule (CRITICAL), Cloud Functions copy.sh, Docker COPY patterns, dependency groups |
-| [04-testing.md](.claude/rules/04-testing.md) | Testing standards 🚧 | Placeholder for pytest patterns, coverage requirements, data testing (to be expanded) |
-| [05-deployment.md](.claude/rules/05-deployment.md) | Deployment patterns | Cloud Functions deployment, Docker containers, deployment strategy decision tree, infrastructure vs application deployment |
-| [06-automation.md](.claude/rules/06-automation.md) | CI/CD workflows & version control | GitHub Actions setup, infrastructure provisioning workflow, uv installation (0.7.8), `uv sync --frozen`, conventional commits, semantic versioning, PR conventions |
+- **Rules** (`.claude/rules/`): Condensed reference guidelines always available in context
+- **Skills** (`.claude/skills/`): Interactive templates and step-by-step workflows invoked on demand
 
-### Quick Navigation
+---
 
-**For architecture questions**: Start with `01-setup.md`
-**For code style questions**: See `02-development.md` (comprehensive guide covering code, docstrings, and logging)
-**For dependency management**: See `03-dependencies.md` (most comprehensive)
-**For testing standards**: See `04-testing.md` (🚧 placeholder - to be expanded)
-**For deployment**: See `05-deployment.md`
-**For CI/CD & git workflow**: See `06-automation.md`
+## Rules (Quick Reference)
+
+Condensed guidelines in `.claude/rules/`. Each rule file points to relevant skills for templates.
+
+| File | Purpose | Related Skills |
+|------|---------|----------------|
+| [01-setup.md](.claude/rules/01-setup.md) | Architecture & tool config | `polylith-component`, `polylith-base`, `polylith-project`, `polylith-explain` |
+| [02-development.md](.claude/rules/02-development.md) | Python coding standards | `python-docstring`, `python-logging`, `python-code-review` |
+| [03-dependencies.md](.claude/rules/03-dependencies.md) | uv & pyproject.toml | `uv-dependency`, `pyproject-config` |
+| [04-testing.md](.claude/rules/04-testing.md) | Testing standards | *(placeholder - to be expanded)* |
+| [05-deployment.md](.claude/rules/05-deployment.md) | Deployment patterns | `cloud-function-deploy`, `dockerfile-polylith`, `kustomize-cloudrun` |
+| [06-automation.md](.claude/rules/06-automation.md) | CI/CD & git workflow | `github-workflow`, `conventional-commit`, `pr-description` |
+
+---
+
+## Skills (On-Demand)
+
+Invoke skills for templates, examples, and step-by-step guidance.
+
+### Polylith Architecture
+| Skill | Purpose |
+|-------|---------|
+| `polylith-component` | Create new Polylith components with proper structure |
+| `polylith-base` | Create new Polylith bases (entry points) |
+| `polylith-project` | Create deployable projects |
+| `polylith-explain` | Explain Polylith architecture concepts |
+
+### Python Development
+| Skill | Purpose |
+|-------|---------|
+| `python-docstring` | Generate Google-style docstrings |
+| `python-logging` | Create structured logging statements |
+| `python-code-review` | Review code for style compliance |
+
+### Dependencies & Configuration
+| Skill | Purpose |
+|-------|---------|
+| `uv-dependency` | uv commands for dependency management |
+| `pyproject-config` | pyproject.toml configuration templates |
+
+### Deployment
+| Skill | Purpose |
+|-------|---------|
+| `cloud-function-deploy` | Cloud Functions deployment setup |
+| `dockerfile-polylith` | Dockerfile templates for Polylith projects |
+| `kustomize-cloudrun` | Kustomize/Cloud Run configuration |
+
+### Automation & Git
+| Skill | Purpose |
+|-------|---------|
+| `github-workflow` | GitHub Actions workflow templates |
+| `conventional-commit` | Conventional commit message examples |
+| `pr-description` | Pull request description templates |
+
+---
+
+## Quick Navigation
+
+**Creating new code**: Use `polylith-component` or `polylith-base` skills
+**Writing docstrings**: Use `python-docstring` skill
+**Adding dependencies**: Use `uv-dependency` skill
+**Setting up deployment**: Use `cloud-function-deploy` or `dockerfile-polylith` skills
+**Writing commits/PRs**: Use `conventional-commit` or `pr-description` skills
 
 ---
 
 ## Glossary & Key Concepts
 
-Quick definitions of Polylith and architecture-specific terms used throughout the documentation.
+Quick definitions of Polylith and architecture-specific terms.
 
 ### Polylith Architecture
 
@@ -45,7 +96,6 @@ Quick definitions of Polylith and architecture-specific terms used throughout th
 - **Stack 2: Application Deployment** - Frequently-changing application code and deployment configs (Docker images, Cloud Run manifests, Cloud Functions)
 - **Kustomize** - Kubernetes-native configuration management tool used for environment-specific Cloud Run manifests
 - **Overlay** - Environment-specific configuration patches in Kustomize (e.g., `sandbox`, `production`)
-- **Lifecycle-Based Separation** - Organizing code/config by change frequency (infrastructure: rare, application: frequent)
 
 ### Tools & Workflows
 
