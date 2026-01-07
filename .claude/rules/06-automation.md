@@ -304,8 +304,10 @@ jobs:
       - name: "Extract Pulumi version from lock file"
         id: extract-pulumi-version
         run: |
+          # Extract exact Pulumi version from uv.lock
           PULUMI_VERSION=$(grep -A 1 '^name = "pulumi"$' uv.lock | grep '^version = ' | head -1 | sed 's/version = "\(.*\)"/\1/')
           echo "PULUMI_VERSION=${PULUMI_VERSION}" >> $GITHUB_OUTPUT
+          echo "Using Pulumi version: ${PULUMI_VERSION}"
 
       - name: "Update Pulumi"
         uses: pulumi/actions@v6
@@ -438,8 +440,10 @@ jobs:
 - name: "Extract Pulumi version from lock file"
   id: extract-pulumi-version
   run: |
+    # Extract exact Pulumi version from uv.lock
     PULUMI_VERSION=$(grep -A 1 '^name = "pulumi"$' uv.lock | grep '^version = ' | head -1 | sed 's/version = "\(.*\)"/\1/')
     echo "PULUMI_VERSION=${PULUMI_VERSION}" >> $GITHUB_OUTPUT
+    echo "Using Pulumi version: ${PULUMI_VERSION}"
 
 # Bad - not verb-subject format
 - name: "Stack and version"

@@ -278,12 +278,12 @@ default-groups = "all"
 
 ### Infrastructure Configuration (Special Case)
 
-The `infrastructure/pulumi/pyproject.toml` file is separate from both workspace and project configurations and follows different patterns:
+The `infrastructure/pyproject.toml` file is separate from both workspace and project configurations and follows different patterns:
 
-**Location:** `infrastructure/pulumi/pyproject.toml`
+**Location:** `infrastructure/pyproject.toml` (at infrastructure root, same level as `pulumi/`)
 
 **Key characteristics:**
-- **Not included in workspace members:** The `infrastructure/pulumi/` directory is NOT listed in workspace root `[tool.uv.workspace] members`
+- **Not included in workspace members:** The `infrastructure/` directory is NOT listed in workspace root `[tool.uv.workspace] members`
 - **Isolated dependency management:** Has its own isolated dependency management, separate from application stack
 - **Infrastructure-specific dependencies:** Contains Pulumi and GCP provider packages not needed by application code
 - **Independent lifecycle:** Updated separately via `infrastructure-provision.yaml` workflow
@@ -295,10 +295,23 @@ name = "de-backoffice-infrastructure"
 version = "1.0.0"
 description = "Infrastructure provisioning for DE Backoffice"
 requires-python = "~=3.13.0"
+# Note: No 'readme' field - infrastructure pyproject.toml is isolated
 dependencies = [
     "pulumi>=3.213.0",
     "pulumi-gcp>=9.6.0",
 ]
+```
+
+**Important notes:**
+- **No `readme` field:** Infrastructure `pyproject.toml` does NOT include a `readme` field. The `infrastructure/` directory should not contain a `README.md` file.
+- **Documentation location:** Infrastructure patterns are documented in Claude rules (this file and [01-setup.md](01-setup.md)), not in scattered README files within the infrastructure directory.
+
+**Directory structure:**
+```
+infrastructure/
+├── pyproject.toml        # Infrastructure dependencies
+├── pulumi/               # Pulumi IaC code
+└── cloudrun/             # Kustomize manifests
 ```
 
 **Why separate:**

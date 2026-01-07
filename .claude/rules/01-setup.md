@@ -54,6 +54,7 @@ workspace-root/
 ├── components/         # Application logic (Polylith)
 ├── projects/           # Application deployments
 ├── infrastructure/     # Infrastructure definitions (separate)
+│   ├── pyproject.toml  # Infrastructure dependencies (Pulumi, providers)
 │   ├── cloudrun/       # Cloud Run service manifests (Kustomize base + overlays)
 │   ├── cloudfunction/  # Cloud Function deployment configs (gcloud or other tools)
 │   └── pulumi/         # Pulumi IaC for service accounts, Cloud Storage, IAM, etc.
@@ -158,14 +159,16 @@ Application changes (frequent):
 
 This repository implements the 2-stack pattern for Cloud Run deployment:
 
-**Stack 1 (Infrastructure Foundation): `infrastructure/pulumi/`**
+**Stack 1 (Infrastructure Foundation): `infrastructure/`**
 ```
-infrastructure/pulumi/
-├── __main__.py           # Pulumi program for GCP resources
-├── helpers/
-│   ├── naming.py        # Resource naming conventions
-│   └── locations.py     # Multi-region support
-└── Pulumi.{stack}.yaml  # Stack configurations (sandbox, production)
+infrastructure/
+├── pyproject.toml        # Infrastructure dependencies (Pulumi, providers)
+└── pulumi/
+    ├── __main__.py       # Pulumi program for GCP resources
+    ├── helpers/
+    │   ├── naming.py    # Resource naming conventions
+    │   └── locations.py  # Multi-region support
+    └── Pulumi.{stack}.yaml  # Stack configurations (sandbox, production)
 ```
 
 **What's provisioned (rarely changes):**
@@ -368,6 +371,7 @@ workspace-root/
 ├── uv.lock                 # Locked dependency versions
 ├── workspace.toml          # Polylith workspace metadata
 ├── infrastructure/         # Infrastructure definitions (separate from app code)
+│   ├── pyproject.toml      # Infrastructure dependencies (Pulumi, providers)
 │   ├── cloudrun/           # Cloud Run Kustomize manifests (base + overlays)
 │   ├── cloudfunction/      # Cloud Function deployment configs
 │   └── pulumi/             # Pulumi IaC stacks (service accounts, storage, IAM)
@@ -679,6 +683,7 @@ data-engineering-workspace/
 ├── uv.lock
 ├── workspace.toml
 ├── infrastructure/              # Infrastructure separate from app code
+│   ├── pyproject.toml          # Infrastructure dependencies (Pulumi, providers)
 │   ├── cloudrun/                # Cloud Run deployment configs (Kustomize)
 │   │   ├── base/
 │   │   │   ├── service.yaml
