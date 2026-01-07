@@ -43,7 +43,7 @@ description = "Data pipeline for CDC replication"
 readme = "README.md"
 requires-python = "~=3.13.0"
 authors = [
-    { name = "Data Engineering Team", email = "data_eng@pulsifi.me" }
+    { name = "Data Engineering Team", email = "de-team@pulsifi.me" }
 ]
 ```
 
@@ -55,7 +55,7 @@ version = "2.5.0"
 description = "Data pipeline for CDC replication"
 requires-python = "~=3.13.0"
 authors = [
-    { name = "Data Engineering Team", email = "data_eng@pulsifi.me" }
+    { name = "Data Engineering Team", email = "de-team@pulsifi.me" }
 ]
 ```
 
@@ -66,7 +66,7 @@ authors = [
 - **readme:** Path to README file (typically `"README.md"`). **ONLY** include in workspace root `pyproject.toml`. **NEVER** include in project-level `pyproject.toml` files.
 - **requires-python:** Always use tilde operator `~=` for minor version pinning (e.g., `~=3.13.0` allows `>=3.13.0, <3.14.0`).
 - **authors:** Use consistent team attribution across all repositories:
-  - `{ name = "Data Engineering Team", email = "data_eng@pulsifi.me" }`
+  - `{ name = "Data Engineering Team", email = "de-team@pulsifi.me" }`
 
 ## 2. Workspace vs Project Configuration
 
@@ -181,7 +181,7 @@ version = "3.151.0"
 description = "IP geolocation transformation function"
 requires-python = "~=3.13.0"
 authors = [
-    { name = "Data Engineering Team", email = "data_eng@pulsifi.me" }
+    { name = "Data Engineering Team", email = "de-team@pulsifi.me" }
 ]
 dependencies = [
     "Flask>=3.1.2",
@@ -497,7 +497,7 @@ description = "BigQuery asset management workspace"
 readme = "README.md"
 requires-python = "~=3.13.0"
 authors = [
-    { name = "Data Engineering Team", email = "data_eng@pulsifi.me" }
+    { name = "Data Engineering Team", email = "de-team@pulsifi.me" }
 ]
 dependencies = [
     "Flask>=3.1.2",
@@ -594,7 +594,7 @@ version = "3.151.0"
 description = "Retrieves geographical information for a list of IP addresses."
 requires-python = "~=3.13.0"
 authors = [
-    { name = "Data Engineering Team", email = "data_eng@pulsifi.me" }
+    { name = "Data Engineering Team", email = "de-team@pulsifi.me" }
 ]
 dependencies = [
     "Flask>=3.1.2",
@@ -820,7 +820,7 @@ requires-python = "~=3.13.0"
 
 # ✅ Use consistent team attribution
 authors = [
-    { name = "Data Engineering Team", email = "data_eng@pulsifi.me" }
+    { name = "Data Engineering Team", email = "de-team@pulsifi.me" }
 ]
 
 # ✅ Omit workspace config from project files
@@ -853,7 +853,7 @@ description = "My project description"
 # No readme field - ONLY in workspace root
 requires-python = "~=3.13.0"
 authors = [
-    { name = "Data Engineering Team", email = "data_eng@pulsifi.me" }
+    { name = "Data Engineering Team", email = "de-team@pulsifi.me" }
 ]
 dependencies = [
     "Flask>=3.1.2",
