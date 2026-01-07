@@ -329,6 +329,32 @@ Polylith provides a structured approach to building software by organizing code 
 - Fundamental units of code in Polylith, acting like LEGO bricks
 - Essentially Python namespace packages
 
+  **Python Namespace Packages and `__init__.py`:**
+
+  Polylith bricks use Python's namespace package feature (PEP 420, Python 3.3+):
+
+  - **Namespace level** (e.g., `model_context/`): Does NOT need `__init__.py`
+    - Python automatically treats directories without `__init__.py` as namespace packages
+    - Allows splitting a namespace across multiple directories (bases/, components/)
+  - **Brick level** (e.g., `model_context/settings/`): DOES need `__init__.py`
+    - Polylith CLI automatically creates `__init__.py` when creating bricks
+    - Makes the brick a regular Python package that can be imported
+
+  **In Dockerfiles:**
+  ```dockerfile
+  # ✅ Correct - just create the namespace directory
+  RUN mkdir model_context
+
+  # ❌ Wrong - don't manually add __init__.py at namespace level
+  RUN mkdir model_context && touch model_context/__init__.py
+  ```
+
+  **Why this matters:**
+  - Namespace packages allow `from model_context.settings.core import Settings` to work
+  - The `settings` brick has `__init__.py` (created by Polylith CLI)
+  - The `model_context` namespace directory doesn't need one
+  - Adding `__init__.py` at namespace level won't break anything, but it's unnecessary
+
   **Components:**
   - High-level, reusable building blocks encapsulating specific functionalities or domain logic
   - Designed for single responsibility, statelessness, and purity

@@ -478,6 +478,87 @@ patches:
         value: "2"
 ```
 
+### Kustomize JSON Patch Syntax
+
+Kustomize uses [JSON Patch (RFC 6902)](https://datatracker.ietf.org/doc/html/rfc6902) for overlay modifications. Understanding the syntax is critical for correct patching.
+
+**JSON Pointer Escaping:**
+
+Annotation keys contain `/` characters (e.g., `autoscaling.knative.dev/minScale`), which conflict with JSON Pointer path separators. Use `~1` to escape `/`:
+
+```yaml
+# ❌ Wrong - slash interpreted as path separator
+- op: replace
+  path: /spec/template/metadata/annotations/autoscaling.knative.dev/minScale
+  value: "1"
+
+# ✅ Correct - slash escaped with ~1
+- op: replace
+  path: /spec/template/metadata/annotations/autoscaling.knative.dev~1minScale
+  value: "1"
+```
+
+**Escape sequences:**
+- `~0` escapes `~` (tilde)
+- `~1` escapes `/` (forward slash)
+
+**Common annotation paths:**
+```yaml
+# Autoscaling annotations
+- op: replace
+  path: /spec/template/metadata/annotations/autoscaling.knative.dev~1minScale
+  value: "1"
+- op: replace
+  path: /spec/template/metadata/annotations/autoscaling.knative.dev~1maxScale
+  value: "5"
+
+# Cloud Run annotations
+- op: replace
+  path: /spec/template/metadata/annotations/run.googleapis.com~1cpu-throttling
+  value: "false"
+```
+
+### Base Must Define Paths for Overlay Patches
+
+**Critical rule:** `op: replace` requires the target path to exist in the base. If the path doesn't exist, the patch fails silently or errors.
+
+**Pattern:** Define placeholder values in base so overlays can patch them:
+
+```yaml
+# ✅ Base service.yaml - defines annotations for overlays to patch
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/cpu-throttling: "false"
+        run.googleapis.com/startup-cpu-boost: "true"
+        autoscaling.knative.dev/minScale: "0"   # Default, overridden by overlays
+        autoscaling.knative.dev/maxScale: "2"   # Default, overridden by overlays
+```
+
+```yaml
+# ✅ Overlay can now use op: replace
+patches:
+  - target:
+      kind: Service
+      name: console-cr
+    patch: |-
+      - op: replace
+        path: /spec/template/metadata/annotations/autoscaling.knative.dev~1minScale
+        value: "1"
+```
+
+**Why not use `op: add`?**
+- `op: add` requires the parent path to exist
+- For nested paths like `/spec/template/metadata/annotations/...`, the `annotations` object must exist
+- Using `op: replace` with base-defined values is more predictable and debuggable
+
+**Debugging tip:** Preview the final manifest to verify patches applied correctly:
+```bash
+cd infrastructure/cloudrun/overlays/production
+kustomize build .
+```
+
 ### Deployment Integration
 
 During application deployment (see `deploy.yaml` and `sandbox-deploy.yaml`):
