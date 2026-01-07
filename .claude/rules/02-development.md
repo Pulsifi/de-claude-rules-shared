@@ -48,6 +48,7 @@
 **pre-commit** - Git hooks
 - Runs ruff and pyright before commits
 - Ensures code quality before it reaches CI/CD
+- See [06-automation.md](06-automation.md#pre-commit-hooks) for standard configuration
 
 ---
 

@@ -196,7 +196,8 @@ jobs:
           uv run pytest test/             \
           --junitxml=pytest.xml                \
           --cov-report=xml:coverage.xml        \
-          --cov=components/                    \
+          --cov=components                     \
+          --cov=bases                          \
           | tee pytest-coverage.txt
 ```
 
@@ -1063,24 +1064,86 @@ fix(logging): correct sentry DSN configuration for production
 ## 18. Git Workflow Integration
 
 ### Pre-commit Hooks
-Pre-commit hooks automatically run before each commit:
 
-1. **ruff-format:** Formats Python code
-2. **ruff-linter:** Lints Python code
-3. **pytest:** Runs test suite
+Pre-commit hooks automatically run before each commit to ensure code quality. All repositories MUST use this standard configuration.
 
-If hooks modify files (e.g., formatting), the commit will fail. Stage the changes and retry.
+#### Standard Configuration
 
-### Commit Message Validation
-Consider adding `commitlint` to validate commit messages:
+Create `.pre-commit-config.yaml` at the workspace root:
 
 ```yaml
-# .pre-commit-config.yaml
-- repo: https://github.com/compilerla/conventional-pre-commit
-  rev: v3.0.0
-  hooks:
-    - id: conventional-pre-commit
-      stages: [commit-msg]
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: ruff-format
+        entry: "uv run ruff format bases components projects update_version.py"
+        language: system
+        always_run: true
+        types: [python]
+
+  - repo: local
+    hooks:
+      - id: ruff-linter
+        name: ruff-linter
+        entry: "uv run ruff check --fix bases components projects update_version.py"
+        language: system
+        always_run: true
+        types: [python]
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: "uv run pytest"
+        pass_filenames: false
+        language: system
+        always_run: true
+        types: [python]
+```
+
+#### Hook Descriptions
+
+| Hook | Purpose | Behavior |
+|------|---------|----------|
+| **ruff-format** | Formats Python code | Auto-fixes formatting issues |
+| **ruff-linter** | Lints and fixes code | Auto-fixes linting issues with `--fix` |
+| **pytest** | Runs test suite | Ensures tests pass before commit |
+
+#### Setup Instructions
+
+```bash
+# Install pre-commit (included in dev dependency group)
+uv sync
+
+# Install the git hooks
+uv run pre-commit install
+
+# Run hooks manually on all files (optional)
+uv run pre-commit run --all-files
+```
+
+#### Handling Hook Failures
+
+If hooks modify files (e.g., formatting), the commit will fail. Stage the changes and retry:
+
+```bash
+# After hooks auto-fix files
+git add -u
+git commit -m "your commit message"
+```
+
+### Commit Message Validation
+
+Optionally add `commitlint` to validate commit messages follow conventional format:
+
+```yaml
+# Add to .pre-commit-config.yaml
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.0.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
 ```
 
 ## 19. Tools and Resources

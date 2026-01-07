@@ -563,6 +563,7 @@ kustomize build .
 3. **Pin uv version:** Use exact version (0.7.8) for reproducibility
 4. **Use --frozen flag:** Ensure deterministic builds from lock file
 5. **Layer optimization:** For Docker, copy dependencies before source code for better caching
+6. **Follow subset rule:** Project dependencies must be a subset of workspace root dependencies - see [03-dependencies.md](03-dependencies.md#2-workspace-vs-project-configuration) for details
 
 ### Cloud Functions Specific
 

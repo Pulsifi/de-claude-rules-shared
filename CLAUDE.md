@@ -23,6 +23,21 @@ See the detailed rules in `.claude/rules/` for comprehensive guidelines. Below i
 **For deployment**: See `05-deployment.md`
 **For CI/CD & git workflow**: See `06-automation.md`
 
+### Task Reference
+
+| When working on... | Read this file |
+|-------------------|----------------|
+| Creating a new project or brick | [01-setup.md](.claude/rules/01-setup.md) |
+| Writing or modifying Python code | [02-development.md](.claude/rules/02-development.md) |
+| Adding/updating dependencies | [03-dependencies.md](.claude/rules/03-dependencies.md) |
+| Creating/modifying pyproject.toml | [03-dependencies.md](.claude/rules/03-dependencies.md) |
+| Writing tests | [04-testing.md](.claude/rules/04-testing.md) |
+| Deploying to Cloud Functions | [05-deployment.md](.claude/rules/05-deployment.md) |
+| Deploying to Cloud Run (Docker) | [05-deployment.md](.claude/rules/05-deployment.md) |
+| Creating GitHub Actions workflows | [06-automation.md](.claude/rules/06-automation.md) |
+| Writing commit messages | [06-automation.md](.claude/rules/06-automation.md) |
+| Creating pull requests | [06-automation.md](.claude/rules/06-automation.md) |
+
 ---
 
 ## Glossary & Key Concepts
@@ -36,7 +51,7 @@ Quick definitions of Polylith and architecture-specific terms used throughout th
 - **Component** - Reusable, stateless building block encapsulating specific functionality (e.g., `logging`, `settings`, `pubsub`)
 - **Base** - Entry point for applications or services that compose components (e.g., `api_server`, `data_transformation`, `cli_tool`)
 - **Project** - Deployable unit that specifies which components and bases to include (e.g., microservice, web app, CLI tool)
-- **Namespace** - Python package namespace grouping related bricks (e.g., `de_backoffice`, `asset`, `pipeline`)
+- **Namespace** - Python package namespace grouping related bricks (e.g., `my_app`, `data_pipeline`, `shared`)
 
 ### Infrastructure & Deployment
 
@@ -54,9 +69,11 @@ Quick definitions of Polylith and architecture-specific terms used throughout th
 - **Polylith CLI** - Command-line tool for creating and managing Polylith bricks (`poly create component`)
 - **Conventional Commits** - Standardized commit message format enabling automated semantic versioning
 
-### Repository Specifics
+### Polylith Directory Structure
 
-- **de_backoffice** - The actual namespace used in this repository (documentation examples may use `asset` or `example`)
-- **console-cr** - Cloud Run service name for the Streamlit backoffice console application
-- **infrastructure/** - Directory containing all infrastructure definitions (pulumi, cloudrun, cloudfunction)
-- **projects/** - Directory containing deployable applications with their own `pyproject.toml`
+- **workspace root** - Contains `pyproject.toml`, `uv.lock`, `workspace.toml`, and all Polylith directories
+- **bases/** - Entry points for applications (e.g., `bases/{namespace}/api_server/`)
+- **components/** - Reusable building blocks (e.g., `components/{namespace}/logging/`)
+- **projects/** - Deployable units with their own `pyproject.toml` (e.g., `projects/my_service/`)
+- **infrastructure/** - Infrastructure definitions separate from application code (pulumi, cloudrun, cloudfunction)
+- **test/** - Tests mirroring bases/ and components/ structure

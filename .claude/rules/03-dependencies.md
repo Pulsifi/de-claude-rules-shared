@@ -233,9 +233,9 @@ build-backend = "hatchling.build"
 
 These sections should be **omitted** from project `pyproject.toml` files:
 
-#### [tool.hatch.build] - When Using copy.sh Deployment
+#### [tool.hatch.build]
 ```toml
-# ❌ DON'T add this to project files if using copy.sh for deployment
+# ❌ DON'T add this to project files
 [tool.hatch.build]
 dev-mode-dirs = ["../../components", "../../bases", "../../development", "../.."]
 
@@ -249,9 +249,7 @@ enabled = true
 allow-direct-references = true
 ```
 
-**Why omit:** When deploying Cloud Functions with `copy.sh` scripts, you're manually copying bricks into the project directory. The hatch build configuration is only needed for local development (workspace root) or when building Python packages for distribution.
-
-**When to include:** Only add these sections to project files if you're building distributable packages (wheels) from individual projects.
+**Why omit:** The hatch build configuration is only needed in workspace root for local development. Projects don't need this because bricks are either copied via `copy.sh` (Cloud Functions) or `COPY` commands (Docker).
 
 #### [tool.uv] default-groups
 ```toml
@@ -274,7 +272,7 @@ default-groups = "all"
 | `[tool.ruff]`              | ✅ Required     | ❌ Never       | Workspace-wide config     |
 | `[tool.pyright]`           | ✅ Required     | ❌ Never       | Workspace-wide config     |
 | `[tool.polylith.bricks]`   | ✅ Required     | ✅ Required    | Different paths in each   |
-| `[tool.hatch.build]`       | ✅ Required     | ⚠️ Optional    | Omit if using copy.sh     |
+| `[tool.hatch.build]`       | ✅ Required     | ❌ Omit        | Workspace-only config     |
 
 ### Infrastructure Configuration (Special Case)
 
@@ -364,6 +362,39 @@ release = [
 ]
 ```
 **Used for:** Deploying infrastructure and releasing versions
+
+### Which Group Should I Use?
+
+Use this decision tree when adding a new dependency:
+
+```
+Is it needed at runtime in production?
+├── YES → Add to [project] dependencies (not a group)
+└── NO → Continue below...
+
+Is it for running tests?
+├── YES → Add to `test` group
+│         Examples: pytest, pytest-cov, faker, responses
+└── NO → Continue below...
+
+Is it for deploying/releasing?
+├── YES → Add to `release` group
+│         Examples: pulumi, semantic-release, twine
+└── NO → Continue below...
+
+Is it for local development only?
+└── YES → Add to `dev` group
+          Examples: ruff, pyright, pre-commit, polylith-cli
+```
+
+**Quick reference:**
+
+| Package Type | Group | Examples |
+|-------------|-------|----------|
+| Runtime libraries | `[project] dependencies` | Flask, pydantic, google-cloud-* |
+| Linters, formatters, type checkers | `dev` | ruff, pyright, mypy |
+| Test frameworks and helpers | `test` | pytest, pytest-cov, faker |
+| CI/CD and deployment tools | `release` | pulumi, semantic-release |
 
 ### Version Constraints
 - **Use `>=` with locked versions:** All dependencies MUST specify minimum versions that match the locked versions in `uv.lock`.
