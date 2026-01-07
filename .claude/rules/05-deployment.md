@@ -329,18 +329,39 @@ apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
   name: console-cr
+  labels:
+    component: example_component
+    epic: example_epic
+  annotations:
+    run.googleapis.com/ingress: all
 spec:
   template:
     metadata:
       labels:
-        version: VERSION_PLACEHOLDER  # Replaced during deployment
+        version: VERSION_PLACEHOLDER
+        component: example_component
+        epic: example_epic
+      annotations:
+        run.googleapis.com/cpu-throttling: "false"
+        run.googleapis.com/startup-cpu-boost: "true"
+        autoscaling.knative.dev/minScale: "0"  # Override in production overlay
+        autoscaling.knative.dev/maxScale: "2"  # Override in production overlay
     spec:
+      serviceAccountName: console-cr@PROJECT_ID.iam.gserviceaccount.com
+      timeoutSeconds: 300
       containers:
       - name: console-cr
-        image: IMAGE_URL  # Set by kustomize edit
+        image: IMAGE_URL
         ports:
         - containerPort: 8080
           name: http1
+        env:
+        - name: ENVIRONMENT
+          value: ENVIRONMENT_PLACEHOLDER
+        - name: VERSION
+          value: VERSION_PLACEHOLDER
+        - name: GCP_PROJECT_ID
+          value: GCP_PROJECT_ID_PLACEHOLDER
         startupProbe:
           httpGet:
             path: /health_check
@@ -358,12 +379,19 @@ spec:
           limits:
             cpu: "1"
             memory: 2Gi
+  traffic:
+  - latestRevision: true
+    percent: 100
 ```
 
 **Key elements:**
 - `IMAGE_URL`: Placeholder updated by `kustomize edit set image`
 - `VERSION_PLACEHOLDER`: Replaced by actual version during deployment
-- Resource limits, health checks, environment variables defined here
+- `annotations`: Empty placeholders enable overlays to add values via `op: replace`
+- `autoscaling.knative.dev/*`: Control min/max instance scaling
+- `run.googleapis.com/cpu-throttling`: Set to "false" to keep CPU allocated during idle
+- `run.googleapis.com/startup-cpu-boost`: Set to "true" for faster cold starts
+- `traffic`: Routes 100% traffic to latest revision
 
 ### Startup Probe Configuration (Important)
 
