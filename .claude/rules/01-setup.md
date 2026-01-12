@@ -262,7 +262,9 @@ projects/console/
        working-directory: infrastructure/cloudrun/overlays/${ENVIRONMENT}
        run: |
          kustomize edit set image IMAGE_URL=...console-cr:${VERSION}
-         kustomize build . | sed "s|VERSION_PLACEHOLDER|${VERSION}|g" > /tmp/service.yaml
+         kustomize build . \
+           | sed "s|VERSION_PLACEHOLDER|${VERSION}|g" \
+           > /tmp/service.yaml
          gcloud run services replace /tmp/service.yaml --region=asia-southeast1
          gcloud run services add-iam-policy-binding console-cr --member=allUsers
    ```

@@ -338,7 +338,6 @@ spec:
   template:
     metadata:
       labels:
-        version: VERSION_PLACEHOLDER
         component: example_component
         epic: example_epic
       annotations:
@@ -386,8 +385,10 @@ spec:
 
 **Key elements:**
 - `IMAGE_URL`: Placeholder updated by `kustomize edit set image`
-- `VERSION_PLACEHOLDER`: Replaced by actual version during deployment
+- `VERSION_PLACEHOLDER`: Replaced by actual version during deployment (used in environment variables, NOT in labels)
 - `annotations`: Empty placeholders enable overlays to add values via `op: replace`
+
+**Important: Do NOT use version in labels.** GCP Cloud Run labels only allow lowercase letters, numbers, underscores, and dashes. Semantic versions like `2.0.0` contain dots which violate this constraint. The version is available as an environment variable (`VERSION`) instead.
 - `autoscaling.knative.dev/*`: Control min/max instance scaling
 - `run.googleapis.com/cpu-throttling`: Set to "false" to keep CPU allocated during idle
 - `run.googleapis.com/startup-cpu-boost`: Set to "true" for faster cold starts
@@ -574,7 +575,9 @@ kustomize edit set image \
   IMAGE_URL=asia-southeast1-docker.pkg.dev/.../console-cr:${VERSION}
 
 # Step 3: Generate final manifest
-kustomize build . | sed "s|VERSION_PLACEHOLDER|${VERSION}|g" > /tmp/service.yaml
+kustomize build . \
+  | sed "s|VERSION_PLACEHOLDER|${VERSION}|g" \
+  > /tmp/service.yaml
 
 # Step 4: Deploy to Cloud Run
 gcloud run services replace /tmp/service.yaml --region=asia-southeast1
