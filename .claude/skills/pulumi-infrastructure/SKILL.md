@@ -22,9 +22,21 @@ infrastructure/pulumi/
 │       └── {table}.json
 ├── monitoring/           # Cloud Monitoring dashboard JSON
 │   └── dashboard.json
-├── Pulumi.yaml           # Pulumi project definition
+├── Pulumi.yaml           # Pulumi project definition (see below)
 └── Pulumi.{stack}.yaml   # Stack configurations (sandbox, production)
 ```
+
+### Pulumi.yaml Configuration
+
+```yaml
+name: data-integration
+runtime:
+  name: python
+  options:
+    toolchain: uv  # Uses uv for Python dependency management
+```
+
+The `toolchain: uv` setting tells Pulumi to use uv for installing Python dependencies when running `pulumi install`.
 
 ## Procedure: Adding New Resources
 
@@ -140,3 +152,4 @@ See reference files for patterns:
 - Always test in sandbox first
 - Production requires manual workflow_dispatch trigger
 - Changes don't require application redeployment
+- `pulumi install` with `toolchain: uv` handles Python dependencies automatically — no manual `uv sync` needed in CI workflows (workspace has `default-groups = "all"`)

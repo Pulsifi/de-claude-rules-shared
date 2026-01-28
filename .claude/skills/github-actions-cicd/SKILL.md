@@ -36,6 +36,8 @@ steps:
     run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
 ```
 
+**Exception:** Pulumi workflows using `toolchain: uv` (see [pulumi-infrastructure skill](../pulumi-infrastructure/SKILL.md)) do not need the "Install dependencies" and "Activate virtualenv" steps — `pulumi install` handles this automatically.
+
 ## Key Rules
 
 | Rule | Do | Don't |
@@ -156,6 +158,24 @@ Use `verb-subject` in kebab-case when steps have outputs:
   run: |
     echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
 ```
+
+## Extracting Package Version from Lock File
+
+Use `uv tree` to get a package version from `uv.lock` (e.g., for Pulumi version pinning):
+
+```yaml
+- name: "Extract Pulumi version from lock file"
+  id: extract-pulumi-version
+  run: |
+    PULUMI_VERSION=$(uv tree --package pulumi --depth 0 --frozen | sed 's/.* v//')
+    echo "PULUMI_VERSION=${PULUMI_VERSION}" >> $GITHUB_OUTPUT
+    echo "Using Pulumi version: ${PULUMI_VERSION}"
+```
+
+This approach:
+- Uses uv's native TOML parsing (more robust than grep)
+- Uses `--frozen` to read from lock file without modification
+- Works without running `uv sync` first
 
 ## Reference Files
 
