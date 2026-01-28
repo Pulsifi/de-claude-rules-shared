@@ -15,8 +15,7 @@ Use this skill when the user asks to:
 ```
 projects/{job_name}/
 ├── pyproject.toml      # Dependencies and brick references
-├── Dockerfile          # Container definition
-└── main.py             # Entry point (optional)
+└── Dockerfile          # Container definition
 
 infrastructure/cloudrunjob/{job_name}/
 ├── base/
@@ -34,37 +33,27 @@ infrastructure/cloudrunjob/{job_name}/
 Create `projects/{job_name}/Dockerfile`:
 
 ```dockerfile
-FROM python:3.13-slim@sha256:{digest}
+FROM python:3.13-slim
 
-RUN apt-get update && \
-    apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends ca-certificates curl
-
-# Install uv
-ADD https://astral.sh/uv/0.7.8/install.sh /uv-installer.sh
-RUN sh /uv-installer.sh && rm /uv-installer.sh
-
-ENV PATH="/root/.local/bin/:$PATH"
+# Install uv from official image (faster, more secure than shell script)
+COPY --from=ghcr.io/astral-sh/uv:0.7.8 /uv /uvx /usr/local/bin/
 
 WORKDIR /app
 
 # Copy dependencies first (layer caching)
-COPY projects/{job_name}/pyproject.toml ./
-COPY uv.lock ./
+COPY projects/{job_name}/pyproject.toml ./pyproject.toml
+COPY uv.lock ./uv.lock
 
 # Install dependencies
 RUN uv sync --frozen --no-default-groups --no-install-project
 
 # Copy Polylith bricks
-COPY components/{namespace}/logging {namespace}/logging
-COPY components/{namespace}/settings {namespace}/settings
-COPY bases/{namespace}/{base_name} {namespace}/{base_name}
+COPY components/{namespace}/{component1}/ ./{namespace}/{component1}/
+COPY components/{namespace}/{component2}/ ./{namespace}/{component2}/
+COPY bases/{namespace}/{base_name}/ ./{namespace}/{base_name}/
 
-# Set up entry point
-RUN mv {namespace}/{base_name}/core.py main.py
-
-ENV PATH="/app/.venv/bin:$PATH"
-CMD ["python", "main.py"]
+# Run as Cloud Run Job using module execution
+CMD [".venv/bin/python", "-m", "{namespace}.{base_name}.core"]
 ```
 
 ### Step 2: Create Base Job Manifest
@@ -83,6 +72,8 @@ metadata:
 spec:
   template:
     metadata:
+      labels:
+        component: data-pipeline
       annotations:
         run.googleapis.com/execution-environment: gen2
     spec:
@@ -97,6 +88,8 @@ spec:
             env:
             - name: COMPONENT
               value: data-pipeline
+            - name: LOG_EXECUTION_ID
+              value: "true"
             resources:
               limits:
                 cpu: "1"
@@ -133,6 +126,7 @@ images:
     newName: IMAGE_URL_PLACEHOLDER
 
 patches:
+  # Service account
   - patch: |-
       - op: add
         path: /spec/template/spec/template/spec/serviceAccountName
@@ -140,6 +134,55 @@ patches:
     target:
       kind: Job
       name: {job_name}
+
+  # Environment variables (standard)
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/template/spec/containers/0/env/-
+        value:
+          name: ENVIRONMENT
+          value: production
+      - op: add
+        path: /spec/template/spec/template/spec/containers/0/env/-
+        value:
+          name: VERSION
+          value: VERSION_PLACEHOLDER
+      - op: add
+        path: /spec/template/spec/template/spec/containers/0/env/-
+        value:
+          name: GCP_PROJECT_ID
+          value: {gcp_project_id}
+      - op: add
+        path: /spec/template/spec/template/spec/containers/0/env/-
+        value:
+          name: GCP_REGION
+          value: {gcp_region}
+    target:
+      kind: Job
+      name: {job_name}
+
+  # Secrets annotation (optional - include if job needs secret access)
+  # - patch: |-
+  #     - op: add
+  #       path: /spec/template/metadata/annotations/run.googleapis.com~1secrets
+  #       value: "{SECRET_NAME}:projects/{gcp_project_id}/secrets/{SECRET_NAME}"
+  #   target:
+  #     kind: Job
+  #     name: {job_name}
+
+  # Secret environment variables (optional - include if job needs secrets)
+  # - patch: |-
+  #     - op: add
+  #       path: /spec/template/spec/template/spec/containers/0/env/-
+  #       value:
+  #         name: {SECRET_ENV_VAR}
+  #         valueFrom:
+  #           secretKeyRef:
+  #             name: {SECRET_NAME}
+  #             key: latest
+  #   target:
+  #     kind: Job
+  #     name: {job_name}
 ```
 
 ## Procedure: Deployment
