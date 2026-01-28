@@ -16,6 +16,7 @@ Use this skill when the user asks to:
 infrastructure/pulumi/
 ├── __main__.py           # Main Pulumi program
 ├── helpers/
+│   ├── __init__.py       # Module exports
 │   └── naming.py         # Resource naming utilities
 ├── bigquery/             # BigQuery table schema JSON files
 │   └── {dataset}/
@@ -139,12 +140,50 @@ make_resource_name("bucket", "my-data-bucket")
 make_resource_name("iam", "my-sa", "roles/run.invoker")
 ```
 
+## Optional Resource Patterns
+
+Use `.get()` to handle optional resources. The pattern differs based on context:
+
+### Per-Project Resources (in a loop)
+
+Use `if not: continue` to skip projects that don't need the resource:
+
+```python
+for project_name, project_config in projects.items():
+    cloud_storage_config = project_config.get("cloud_storage")
+    if not cloud_storage_config:
+        continue  # Skip projects without this resource
+
+    bucket = gcp.storage.Bucket(...)
+```
+
+### Workspace-Level Resources (not in a loop)
+
+Use `if not: return` for early exit, then `if x:` for optional subsections:
+
+```python
+monitoring_config = input_config.get_object("monitoring")
+if not monitoring_config:
+    return  # No monitoring configured
+
+log_based_metrics = monitoring_config.get("log_based_metrics")
+if log_based_metrics:
+    for metric in log_based_metrics:
+        ...
+```
+
+**Why different patterns:**
+- Per-project: `continue` skips to next project in the loop
+- Workspace-level: `return` exits early; `if x:` guards optional sections
+
 ## Common Resources
 
 See reference files for patterns:
 - [service-accounts.md](references/service-accounts.md) - Service accounts with IAM
 - [bigquery-tables.md](references/bigquery-tables.md) - BigQuery datasets and tables
+- [cloud-storage.md](references/cloud-storage.md) - Cloud Storage buckets
 - [cloud-scheduler.md](references/cloud-scheduler.md) - Scheduler to Cloud Run Jobs
+- [cloud-monitoring.md](references/cloud-monitoring.md) - Log metrics, alerts, dashboards
 
 ## Important Notes
 
