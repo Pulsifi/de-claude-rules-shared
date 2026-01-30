@@ -30,6 +30,7 @@ Skills provide detailed procedures and examples for specific tasks. They load au
 | `deploy-cloud-functions` | Deploying to Cloud Functions | copy.sh scripts, requirements.txt generation |
 | `deploy-cloudrun-service` | Deploying Cloud Run Services | Dockerfile patterns, Kustomize service manifests |
 | `deploy-cloudrun-job` | Deploying Cloud Run Jobs | Job YAML, Kustomize overlays, scheduler setup |
+| `deploy-dataflow-job` | Deploying Dataflow Jobs | Flex Templates, blue-green deployment, metadata.json |
 | `github-actions-cicd` | Creating/modifying workflows | Workflow YAML examples, uv patterns |
 | `pulumi-infrastructure` | Infrastructure provisioning | Pulumi patterns, two-stack architecture |
 | `semantic-release` | Release workflows, versioning | Configuration, triggering releases |
@@ -57,6 +58,8 @@ Skills provide detailed procedures and examples for specific tasks. They load au
 | **Stack 1** | Foundational resources: service accounts, buckets, IAM, Artifact Registry |
 | **Stack 2** | Application deployment: Docker images, Cloud Run manifests |
 | **Kustomize** | Configuration management for environment-specific Cloud Run manifests |
+| **Flex Template** | Containerized Dataflow job definition with metadata for parameterized deployment |
+| **Blue-Green Deployment** | Deploy new job (green), wait for healthy, drain old jobs (blue) |
 
 ### Tools
 
