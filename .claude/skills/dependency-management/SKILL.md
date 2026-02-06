@@ -21,6 +21,7 @@ Use this skill when the user asks to:
 | Update specific | `uv lock --upgrade-package <package>` |
 | Sync (local dev) | `uv sync` |
 | Sync (CI/CD) | `uv sync --frozen` |
+| Get package version from lock | `uv tree --package <package> --depth 0 --frozen` |
 
 ## Procedure: Adding Dependencies
 
