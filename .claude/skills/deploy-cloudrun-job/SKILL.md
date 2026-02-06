@@ -21,9 +21,13 @@ infrastructure/cloudrunjob/{job_name}/
 ├── base/
 │   ├── job.yaml           # Base job definition
 │   └── kustomization.yaml
-└── overlays/
+└── overlays/              # Only create environments the project needs
+    ├── sandbox/
+    │   └── kustomization.yaml
+    ├── staging/
+    │   └── kustomization.yaml
     └── production/
-        └── kustomization.yaml  # Production patches
+        └── kustomization.yaml
 ```
 
 ## Procedure: Creating New Cloud Run Job
@@ -108,15 +112,17 @@ resources:
   - job.yaml
 ```
 
-### Step 4: Create Production Overlay
+### Step 4: Create Environment Overlays
 
-Create `infrastructure/cloudrunjob/{job_name}/overlays/production/kustomization.yaml`:
+Create overlays for each required environment. Common options are sandbox, staging, and production — not all projects need all three.
+
+`infrastructure/cloudrunjob/{job_name}/overlays/{environment}/kustomization.yaml`:
 
 ```yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: {gcp_project_id}
+namespace: data-{environment}-warehouse
 
 resources:
   - ../../base
@@ -130,7 +136,7 @@ patches:
   - patch: |-
       - op: add
         path: /spec/template/spec/template/spec/serviceAccountName
-        value: {service_account}@{gcp_project_id}.iam.gserviceaccount.com
+        value: {service_account}@data-{environment}-warehouse.iam.gserviceaccount.com
     target:
       kind: Job
       name: {job_name}
@@ -207,17 +213,6 @@ kustomize edit set image IMAGE_URL={image_url}:{version}
 kustomize build . | sed "s|VERSION_PLACEHOLDER|{version}|g" > /tmp/job.yaml
 gcloud run jobs replace /tmp/job.yaml --region=asia-southeast1
 ```
-
-## Key Differences from Services
-
-| Aspect | Cloud Run Job | Cloud Run Service |
-|--------|---------------|-------------------|
-| API Version | `run.googleapis.com/v1` | `serving.knative.dev/v1` |
-| Kind | `Job` | `Service` |
-| Use Case | Batch tasks | HTTP servers |
-| Ports | None | Required |
-| Health Probes | None | Required |
-| Deploy Command | `gcloud run jobs replace` | `gcloud run services replace` |
 
 ## Reference Files
 

@@ -22,8 +22,10 @@ infrastructure/cloudrun/{service_name}/
 ├── base/
 │   ├── service.yaml       # Base service definition
 │   └── kustomization.yaml
-└── overlays/
+└── overlays/              # Only create environments the project needs
     ├── sandbox/
+    │   └── kustomization.yaml
+    ├── staging/
     │   └── kustomization.yaml
     └── production/
         └── kustomization.yaml
@@ -38,25 +40,22 @@ Similar to Cloud Run Job, but the application must expose an HTTP port:
 ```dockerfile
 FROM python:3.13-slim@sha256:{digest}
 
-RUN apt-get update && \
-    apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends ca-certificates curl
+# Install uv from official image
+COPY --from=ghcr.io/astral-sh/uv:0.7.8 /uv /uvx /usr/local/bin/
 
-ADD https://astral.sh/uv/0.7.8/install.sh /uv-installer.sh
-RUN sh /uv-installer.sh && rm /uv-installer.sh
-
-ENV PATH="/root/.local/bin/:$PATH"
 WORKDIR /app
 
-COPY projects/{service_name}/pyproject.toml ./
-COPY uv.lock ./
+# Copy project files for dependency resolution
+COPY projects/{service_name}/pyproject.toml ./pyproject.toml
+COPY uv.lock ./uv.lock
 
+# Install dependencies
 RUN uv sync --frozen --no-default-groups --no-install-project
 
-COPY components/{namespace}/logging {namespace}/logging
-COPY components/{namespace}/settings {namespace}/settings
-COPY bases/{namespace}/{base_name} {namespace}/{base_name}
-
+# Copy Polylith bricks
+COPY components/{namespace}/logging/ ./{namespace}/logging/
+COPY components/{namespace}/settings/ ./{namespace}/settings/
+COPY bases/{namespace}/{base_name}/ ./{namespace}/{base_name}/
 RUN mv {namespace}/{base_name}/core.py main.py
 
 ENV PATH="/app/.venv/bin:$PATH"
@@ -133,12 +132,16 @@ resources:
   - service.yaml
 ```
 
-Production overlay:
+### Step 4: Create Environment Overlays
+
+Create overlays for each required environment. Common options are sandbox, staging, and production — not all projects need all three.
+
+`infrastructure/cloudrun/{service_name}/overlays/{environment}/kustomization.yaml`:
 ```yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: {gcp_project_id}
+namespace: data-{environment}-warehouse
 
 resources:
   - ../../base
@@ -161,18 +164,6 @@ kustomize edit set image IMAGE_URL={image_url}:{version}
 kustomize build . | sed "s|VERSION_PLACEHOLDER|{version}|g" > /tmp/service.yaml
 gcloud run services replace /tmp/service.yaml --region=asia-southeast1
 ```
-
-## Key Differences from Jobs
-
-| Aspect | Cloud Run Service | Cloud Run Job |
-|--------|-------------------|---------------|
-| API Version | `serving.knative.dev/v1` | `run.googleapis.com/v1` |
-| Kind | `Service` | `Job` |
-| Ports | Required | None |
-| Health Probes | Required | None |
-| Autoscaling | `minScale`, `maxScale` | N/A |
-| Traffic | Required (`traffic` section) | N/A |
-| Deploy Command | `gcloud run services replace` | `gcloud run jobs replace` |
 
 ## Startup Probe Configuration (Critical)
 

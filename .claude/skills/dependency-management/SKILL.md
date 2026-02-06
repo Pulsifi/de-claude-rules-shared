@@ -109,9 +109,7 @@ uv sync
 
 ## Critical Rules
 
-### Subset Rule
-
-Project dependencies MUST be a subset of workspace root:
+### Subset Rule (Visual Reference)
 
 ```
 Workspace root: [A, B, C, D]
@@ -119,8 +117,6 @@ Project 1:      [A, B]      ✅ Valid subset
 Project 2:      [B, C, D]   ✅ Valid subset
 Project 3:      [A, E]      ❌ E not in workspace root!
 ```
-
-If project needs new dependency → add to workspace root FIRST.
 
 ### Version Constraints
 
@@ -133,12 +129,6 @@ Always use `>=` with tested version:
 "google-cloud-bigquery"        # No version
 "google-cloud-bigquery>3.0"    # Untested minimum
 ```
-
-### Lock File Rules
-
-- Always commit `uv.lock`
-- Use `--frozen` in CI/CD
-- Never manually edit `uv.lock`
 
 ## Standard Dependency Groups
 

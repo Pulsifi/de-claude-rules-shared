@@ -1,151 +1,260 @@
 # Deploy Cloud Run Functions
 
-Deploy Polylith projects to Google Cloud Functions.
+Deploy containerized Cloud Functions to Cloud Run using Docker, functions-framework, and Kustomize.
 
 ## Trigger
 
 Use this skill when the user asks to:
-- Deploy to Cloud Functions
-- Set up a Cloud Function project
-- Create copy.sh script for deployment
-- Generate requirements.txt for Cloud Functions
+- Deploy a Cloud Run Function
+- Set up a new Cloud Function project
+- Create Kustomize manifests for Cloud Run Function
+- Create Dockerfile for Cloud Run Function
 
 ## Project Structure
 
 ```
 projects/{project_name}/
-├── pyproject.toml      # Project dependencies and brick references
-├── main.py             # Entry point shim (committed)
-├── copy.sh             # Brick copy script (committed)
-├── .gitignore          # Ignore generated files
-├── {namespace}/        # Generated - copied bricks (NOT committed)
-└── requirements.txt    # Generated - dependencies (NOT committed)
+├── pyproject.toml      # Dependencies and brick references
+└── Dockerfile          # Container definition (functions-framework)
+
+infrastructure/cloudrunfunction/{function_name}/
+├── base/
+│   ├── service.yaml       # Base service definition (Knative)
+│   └── kustomization.yaml
+└── overlays/              # Only create environments the project needs
+    ├── sandbox/
+    │   └── kustomization.yaml
+    ├── staging/
+    │   └── kustomization.yaml
+    └── production/
+        └── kustomization.yaml
 ```
 
-## Procedure: Setting Up New Cloud Function Project
+## Procedure: Creating New Cloud Run Function
 
-### Step 1: Create Entry Point Shim
+### Step 1: Create Dockerfile
 
-Create `main.py` that imports from the base:
+Create `projects/{project_name}/Dockerfile`:
 
-```python
-# projects/{project_name}/main.py
-"""Cloud Function entry point for {service description}."""
+```dockerfile
+FROM python:3.13-slim@sha256:{digest}
 
-from {namespace}.{base_name}.core import {function_name}
+# Install uv from official image
+COPY --from=ghcr.io/astral-sh/uv:0.7.8 /uv /uvx /usr/local/bin/
 
-__all__ = ["{function_name}"]
+WORKDIR /app
+
+# Copy project files for dependency resolution
+COPY projects/{project_name}/pyproject.toml ./pyproject.toml
+COPY uv.lock ./uv.lock
+
+# Install dependencies
+RUN uv sync --frozen --no-default-groups --no-install-project
+
+# Copy Polylith bricks
+COPY components/{namespace}/gcp/ ./{namespace}/gcp/
+COPY components/{namespace}/settings/ ./{namespace}/settings/
+COPY bases/{namespace}/{base_name}/ ./{namespace}/{base_name}/
+RUN mv {namespace}/{base_name}/core.py main.py
+
+ENV PORT=8080
+EXPOSE 8080
+
+# Add venv to PATH so functions-framework can be found
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Run with functions-framework
+CMD exec functions-framework --target=${FUNCTION_TARGET} --port=${PORT}
 ```
 
-**Example:**
-```python
-"""Cloud Function entry point for IP geolocation service."""
+**Key differences from Cloud Run Service/Job Dockerfile:**
+- Requires `functions-framework` in project dependencies
+- CMD uses `functions-framework` instead of `python main.py`
+- Entry point is dynamic via `FUNCTION_TARGET` env var
 
-from asset.data_transformation.core import get_ip_geo_info
+### Step 2: Create Base Service Manifest
 
-__all__ = ["get_ip_geo_info"]
+Create `infrastructure/cloudrunfunction/{function_name}/base/service.yaml`:
+
+```yaml
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: {function_name}
+  labels:
+    component: pipeline
+    epic: 3p-data-pipeline
+    owner: data-engineering
+    workload-type: cloud-function
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      labels:
+        component: pipeline
+        epic: 3p-data-pipeline
+        owner: data-engineering
+        workload-type: cloud-function
+      annotations:
+        cloudfunctions.googleapis.com/trigger-type: HTTP_TRIGGER
+        run.googleapis.com/client-name: cloudfunctions
+        run.googleapis.com/startup-cpu-boost: "true"
+    spec:
+      containerConcurrency: 1
+      timeoutSeconds: 60
+      containers:
+      - name: worker
+        image: IMAGE_URL
+        ports:
+        - name: http1
+          containerPort: 8080
+        env:
+        - name: COMPONENT
+          value: pipeline
+        - name: EPIC
+          value: 3p-data-pipeline
+        - name: LOG_EXECUTION_ID
+          value: "true"
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: 512Mi
+        startupProbe:
+          timeoutSeconds: 60
+          periodSeconds: 120
+          failureThreshold: 3
+          successThreshold: 1
+          tcpSocket:
+            port: 8080
+  traffic:
+  - percent: 100
+    latestRevision: true
 ```
 
-### Step 2: Create copy.sh Script
+### Step 3: Create Base Kustomization
 
-Create script to copy Polylith bricks:
+Create `infrastructure/cloudrunfunction/{function_name}/base/kustomization.yaml`:
+
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - service.yaml
+```
+
+### Step 4: Create Environment Overlays
+
+Create overlays for each required environment. Common options are sandbox, staging, and production — not all projects need all three.
+
+`infrastructure/cloudrunfunction/{function_name}/overlays/{environment}/kustomization.yaml`:
+
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: data-{environment}-warehouse
+
+resources:
+  - ../../base
+
+images:
+  - name: IMAGE_URL
+    newName: IMAGE_URL_PLACEHOLDER
+
+patches:
+  # Patch for autoscaling
+  - patch: |-
+      - op: add
+        path: /spec/template/metadata/annotations/autoscaling.knative.dev~1maxScale
+        value: "200"
+    target:
+      kind: Service
+      name: {function_name}
+
+  # Patch for service account
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/serviceAccountName
+        value: {service_account}@data-{environment}-warehouse.iam.gserviceaccount.com
+    target:
+      kind: Service
+      name: {function_name}
+
+  # Patch for environment variables
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: FUNCTION_TARGET
+          value: {python_function_name}
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: ENVIRONMENT
+          value: {environment}
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: VERSION
+          value: VERSION_PLACEHOLDER
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: GCP_PROJECT_ID
+          value: data-{environment}-warehouse
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: GCP_REGION
+          value: GCP_REGION_PLACEHOLDER
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: GCP_REGION_ABBREV
+          value: GCP_REGION_ABBREV_PLACEHOLDER
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: GCP_REGION_SUFFIX
+          value: GCP_REGION_SUFFIX_PLACEHOLDER
+    target:
+      kind: Service
+      name: {function_name}
+```
+
+## Procedure: Deployment
+
+### Step 1: Build and Push Image
 
 ```bash
-#!/bin/bash
-
-# Copy Polylith bricks to project directory for Cloud Functions deployment
-
-namespace="{namespace}"
-project="{project_name}"
-
-# Create namespace directory
-mkdir -p ${namespace}
-
-# Copy base
-echo "Copying base: ${project}..."
-cp -r ../../bases/${namespace}/${project} ${namespace}/
-
-# Copy components (only what this project needs)
-echo "Copying component: logging..."
-cp -r ../../components/${namespace}/logging ${namespace}/
-
-echo "Copying component: settings..."
-cp -r ../../components/${namespace}/settings ${namespace}/
-
-echo "Polylith bricks copied successfully to projects/${project}/"
+docker build -f projects/{project_name}/Dockerfile -t {image_url}:{version} .
+docker push {image_url}:{version}
 ```
 
-### Step 3: Configure .gitignore
-
-Add generated files to `.gitignore`:
-
-```gitignore
-# Cloud Functions deployment artifacts
-{namespace}/
-requirements.txt
-```
-
-### Step 4: Add Required Dependencies
-
-Ensure `pyproject.toml` includes `functions-framework`:
-
-```toml
-[project]
-dependencies = [
-    "functions-framework>=3.10.0",
-    # ... other dependencies
-]
-```
-
-## Procedure: Deployment (CI/CD)
-
-### Step 1: Copy Bricks
+### Step 2: Update Image in Kustomize
 
 ```bash
-cd projects/{project_name}
-./copy.sh
+cd infrastructure/cloudrunfunction/{function_name}/overlays/{environment}
+kustomize edit set image IMAGE_URL={image_url}:{version}
 ```
 
-### Step 2: Generate requirements.txt
+### Step 3: Build and Deploy Manifest
 
 ```bash
-uv export --format requirements-txt --no-hashes --no-emit-project -o requirements.txt
+kustomize build . | sed "s|VERSION_PLACEHOLDER|{version}|g" > /tmp/service.yaml
+gcloud run services replace /tmp/service.yaml --region=asia-southeast1
 ```
 
-**Flag explanations:**
-- `--no-hashes`: Cloud Functions doesn't require hash verification
-- `--no-emit-project`: Exclude `-e .` editable install reference
+## Key Differences from Service and Job
 
-### Step 3: Deploy
-
-```bash
-gcloud functions deploy {function_name} \
-  --gen2 \
-  --runtime=python313 \
-  --region=asia-southeast1 \
-  --source=. \
-  --entry-point={function_name} \
-  --trigger-http
-```
-
-## Key Principles
-
-- **Shim pattern**: `main.py` imports from base's `core.py`
-- **Copy only needed bricks**: Match project's `[tool.polylith.bricks]`
-- **Don't commit generated files**: `{namespace}/` and `requirements.txt`
-- **Namespace structure preserved**: Copied bricks maintain import paths
-
-## Troubleshooting
-
-### "Module not found" error
-
-- Verify `copy.sh` was executed
-- Check namespace directory structure matches imports
-- Ensure all required bricks are copied
-
-### "editable requirement" error
-
-Use correct `uv export` flags:
-```bash
-uv export --format requirements-txt --no-hashes --no-emit-project -o requirements.txt
-```
+| Aspect | Cloud Run Function | Service / Job |
+|--------|-------------------|---------------|
+| Infra Directory | `cloudrunfunction/` | `cloudrun/` or `cloudrunjob/` |
+| Framework | `functions-framework` | Direct `python main.py` |
+| Entry Point | `FUNCTION_TARGET` env var | Hardcoded in CMD |
+| Startup Probe | `tcpSocket` | `httpGet` or None |
+| containerConcurrency | `1` | Default or N/A |
+| Labels | `workload-type: cloud-function` | Custom |
+| Annotations | `cloudfunctions.googleapis.com/*` | `run.googleapis.com/*` |
