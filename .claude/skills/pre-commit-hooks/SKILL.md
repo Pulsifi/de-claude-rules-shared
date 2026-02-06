@@ -172,22 +172,3 @@ uv run pre-commit autoupdate
 uv run pre-commit uninstall
 ```
 
-## Troubleshooting
-
-### "pre-commit: command not found"
-
-Ensure you've synced dependencies:
-```bash
-uv sync
-```
-
-### Hooks not running on commit
-
-Reinstall the hooks:
-```bash
-uv run pre-commit install
-```
-
-### Hook runs but misses files
-
-Check the `entry` paths include all relevant directories (bases, components, projects).

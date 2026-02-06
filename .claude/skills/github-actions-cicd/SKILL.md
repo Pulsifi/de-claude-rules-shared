@@ -36,15 +36,6 @@ steps:
     run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
 ```
 
-## Key Rules
-
-| Rule | Do | Don't |
-|------|-----|-------|
-| Python version | `python-version-file: "pyproject.toml"` | `python-version: "3.13"` |
-| uv version | `version: "0.7.8"` | `version: "latest"` |
-| Sync deps | `uv sync --frozen` | `uv sync` |
-| Caching | Don't cache uv | Use `actions/cache` |
-
 ## Workflow Templates
 
 ### Type Check
