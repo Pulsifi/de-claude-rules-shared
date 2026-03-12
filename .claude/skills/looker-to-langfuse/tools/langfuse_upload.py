@@ -7,12 +7,13 @@ import json
 import os
 from pathlib import Path
 
+import requests
 from dotenv import load_dotenv
 from langfuse import Langfuse
 
-load_dotenv(Path(__file__).parent.parent / ".env")
+load_dotenv()  # searches from cwd upward
 
-DATA_DIR = Path(__file__).parent.parent / "data"
+DATA_DIR = Path.cwd() / "data"
 
 
 def _client():
@@ -25,14 +26,27 @@ def _client():
 
 def list_existing_datasets() -> dict:
     """Returns existing Langfuse datasets so Kelsey can choose to append or create new."""
-    lf = _client()
-    datasets = lf.get_datasets()
-    return {
-        "datasets": [
-            {"name": d.name, "item_count": len(d.items)}
-            for d in (datasets.data if hasattr(datasets, "data") else [])
-        ]
-    }
+    host = os.environ.get("LANGFUSE_HOST", "https://cloud.langfuse.com")
+    public_key = os.environ["LANGFUSE_PUBLIC_KEY"]
+    secret_key = os.environ["LANGFUSE_SECRET_KEY"]
+    auth = (public_key, secret_key)
+
+    response = requests.get(f"{host}/api/public/v2/datasets", auth=auth)
+    response.raise_for_status()
+    datasets = response.json().get("data", [])
+
+    result = []
+    for d in datasets:
+        count_resp = requests.get(
+            f"{host}/api/public/dataset-items",
+            params={"datasetName": d["name"], "limit": 1},
+            auth=auth,
+        )
+        count_resp.raise_for_status()
+        total = count_resp.json().get("meta", {}).get("totalItems", "?")
+        result.append({"name": d["name"], "item_count": total})
+
+    return {"datasets": result}
 
 
 def upload_to_langfuse(

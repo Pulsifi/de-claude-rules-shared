@@ -70,15 +70,91 @@ def get_dashboard_metadata(dashboard_id: str) -> dict:
     }
 
 
+def get_filter_options(dashboard_id: str) -> dict:
+    """
+    Returns available options for each dashboard filter.
+
+    - Enumerated fields (e.g. parameters): returns fixed list of values.
+    - Suggestable string fields: queries Looker for distinct values.
+    - Date fields: indicates it's a date range (no discrete options).
+    """
+    sdk = _client()
+    dashboard = sdk.dashboard(dashboard_id)
+
+    options = []
+    for f in (dashboard.dashboard_filters or []):
+        field = f.field if hasattr(f, "field") and f.field else {}
+        field = field if isinstance(field, dict) else vars(field)
+
+        enumerations = field.get("enumerations")
+        suggestable = field.get("suggestable", False)
+        is_timeframe = field.get("is_timeframe", False)
+        field_name_full = field.get("name", "")
+        model = getattr(f, "model", None)
+        explore = getattr(f, "explore", None)
+
+        if enumerations:
+            values = [e["value"] if isinstance(e, dict) else e.value for e in enumerations]
+            entry = {"name": f.name, "type": "enumeration", "values": values}
+
+        elif is_timeframe or not suggestable:
+            entry = {
+                "name": f.name,
+                "type": "date_range",
+                "note": "Specify as Looker date filter, e.g. '90 days', '2025-01-01 to 2025-03-31'",
+            }
+
+        elif suggestable and model and explore and field_name_full:
+            view = field_name_full.split(".")[0] if "." in field_name_full else explore
+            field_name = field_name_full.split(".")[1] if "." in field_name_full else field_name_full
+            try:
+                inline = looker_sdk.models40.WriteQuery(
+                    model=model,
+                    view=view,
+                    fields=[field_name_full],
+                    limit="500",
+                )
+                result_raw = sdk.run_inline_query("json", inline)
+                rows = json.loads(result_raw)
+                values = sorted(set(
+                    r[field_name_full]
+                    for r in rows
+                    if r.get(field_name_full) not in (None, "")
+                ))
+                entry = {"name": f.name, "type": "string", "values": values, "count": len(values)}
+            except Exception as e:
+                entry = {"name": f.name, "type": "string", "error": str(e)}
+
+        else:
+            entry = {"name": f.name, "type": "unknown"}
+
+        options.append(entry)
+
+    return {"dashboard_id": dashboard_id, "filter_options": options}
+
+
 def fetch_dashboard_data(dashboard_id: str, filters: dict, combo_label: str = None) -> dict:
     """
     Fetches all tile data for a given filter combination.
     Writes full data to disk. Returns only a summary to the LLM.
 
+    filters: keyed by dashboard filter display name (e.g. "Company ID") or LookML field name.
     combo_label: optional label like "combo_01" to identify this run
     """
     sdk = _client()
     dashboard = sdk.dashboard(dashboard_id)
+
+    # Build mapping: display name → LookML field name
+    filter_field_map = {}
+    for f in (dashboard.dashboard_filters or []):
+        if hasattr(f, "dimension") and f.dimension:
+            filter_field_map[f.name] = f.dimension
+
+    # Translate filters from display names to LookML field names
+    translated_filters = {}
+    for k, v in filters.items():
+        field_name = filter_field_map.get(k, k)  # fall back to original key if already a field name
+        translated_filters[field_name] = v
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     label = combo_label or timestamp
@@ -112,7 +188,7 @@ def fetch_dashboard_data(dashboard_id: str, filters: dict, combo_label: str = No
                 model=query.model,
                 view=query.view,
                 fields=query.fields,
-                filters={**(query.filters or {}), **filters},
+                filters={**(query.filters or {}), **translated_filters},
                 sorts=query.sorts,
                 limit=str(query.limit or "500"),
             )
@@ -186,5 +262,10 @@ if __name__ == "__main__":
     if cmd == "metadata" and dashboard_id:
         result = get_dashboard_metadata(dashboard_id)
         print(json.dumps(result, indent=2))
+    elif cmd == "filter-options" and dashboard_id:
+        result = get_filter_options(dashboard_id)
+        print(json.dumps(result, indent=2))
     else:
-        print("Usage: python looker.py metadata <dashboard_id>")
+        print("Usage:")
+        print("  python looker.py metadata <dashboard_id>")
+        print("  python looker.py filter-options <dashboard_id>")

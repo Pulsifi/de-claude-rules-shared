@@ -53,7 +53,20 @@ Show Kelsey:
 - Available filters (name, type, default value)
 - List of charts (title, key, type: scorecard or table_or_chart)
 
-### Step 2: Define Filter Combinations
+### Step 2: Show Available Filter Options
+
+Run filter-options to show Kelsey what values are selectable for each filter:
+
+```bash
+python tools/looker.py filter-options <dashboard_id>
+```
+
+This returns:
+- **enumeration** filters: fixed list of allowed values (e.g. `day`, `month`, `year`)
+- **string** filters: all distinct values currently in Looker (e.g. Company IDs)
+- **date_range** filters: reminder to use Looker date syntax (e.g. `90 days`, `2025-01-01 to 2025-03-31`)
+
+### Step 3: Define Filter Combinations
 
 Ask Kelsey how many combinations she wants and which filters to vary.
 Generate and confirm the full list before fetching.
@@ -66,7 +79,7 @@ Combo 03: { "date_filter": "2025-02", "region": "MY" }
 ...
 ```
 
-### Step 3: Fetch All Combinations
+### Step 4: Fetch All Combinations
 
 Call `fetch_all_combinations` via Python:
 
@@ -89,7 +102,7 @@ Each combination is saved to `data/run_combo_XX.json`. Raw data never enters LLM
 Review the summary with Kelsey. If any chart has many rows (>100), ask:
 > "Chart `<key>` returned N rows. Keep all or truncate to a smaller number?"
 
-### Step 4: Choose Dataset
+### Step 5: Choose Dataset
 
 Check existing Langfuse datasets:
 
@@ -100,7 +113,7 @@ python tools/langfuse_upload.py list
 Ask Kelsey:
 > "Do you want to create a new dataset, or append to an existing one?"
 
-### Step 5: Upload to Langfuse
+### Step 6: Upload to Langfuse
 
 ```python
 from tools.langfuse_upload import upload_to_langfuse
