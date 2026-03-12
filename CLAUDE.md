@@ -34,6 +34,7 @@ Skills provide detailed procedures and examples for specific tasks. They load au
 | `pulumi-infrastructure` | Infrastructure provisioning | Pulumi patterns, two-stack architecture |
 | `semantic-release` | Release workflows, versioning | Configuration, triggering releases |
 | `pre-commit-hooks` | Setting up git hooks | .pre-commit-config.yaml template |
+| `looker-to-langfuse` | Pulling Looker dashboard data into Langfuse datasets | Filter combinations, data fetch, dataset upload workflow |
 
 ---
 
